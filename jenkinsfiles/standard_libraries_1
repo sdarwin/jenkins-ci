@@ -84,6 +84,9 @@ pipeline {
             }
          }
 
+        // To skip this step, and actually all steps, adjust the job's Filter regex in the Jenkins UI
+        // (develop|master|PR-.*) will build all branches
+        // (PR-.*) will build pull requests. Etc.
         stage('Build docs') {
             when {
                 anyOf{
