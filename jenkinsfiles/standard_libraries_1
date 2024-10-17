@@ -1,0 +1,228 @@
+pipeline {
+
+    // agent {
+    //     node {
+    //         label 'jenkinspool1'
+    //     }
+    // }
+
+    agent {
+        docker {
+          image 'cppalliance/boost_superproject_build:24.04-v1'
+          // label 'jenkinspool1'
+          }
+    }
+
+    stages {
+        stage('Preclean Workspace') {
+            steps {
+                sh """#!/bin/bash
+                set -xe
+                rm -rf *
+                """
+                checkout scm
+            }
+        }
+
+        stage('Set Variables') {
+            steps {
+                sh '''#!/bin/bash -xe
+                echo "" > jenkinsjobinfo.sh
+                chmod 777 jenkinsjobinfo.sh
+                REPONAME=$(basename -s .git "$(git config --get remote.origin.url)")
+                # REPONAME=$(basename `git rev-parse --show-toplevel`)
+                DNSREPONAME=$(echo $REPONAME | tr '_' '-')
+                ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
+                echo "JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
+                echo "PRTEST=prtest" >> jenkinsjobinfo.sh
+                echo "REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
+                echo "DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
+                echo "ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
+                '''
+            }
+        }
+
+        stage('Diagnostics') {
+            steps {
+                sh '''#!/bin/bash
+                set -x
+                # not set -e. errors may occur in diagnostics
+                cat jenkinsjobinfo.sh
+                . jenkinsjobinfo.sh
+                ls -al
+                cat /etc/os-release
+                pwd
+                env 
+                whoami
+                touch $(date "+%A-%B-%d-%T-%y")
+                mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}'
+                git branch
+                git branch -avv
+                true
+                '''
+            }
+        }
+
+        stage('Prebuild script') {
+            when {
+                anyOf{
+                    branch 'develop'
+                    branch 'master'
+                    expression { env.CHANGE_ID != null }
+                }
+           } 
+            steps {
+                sh '''#!/bin/bash
+                set -xe
+                . jenkinsjobinfo.sh
+                curl -f -o jenkins_prebuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/master/scripts/${ORGANIZATION}_${REPONAME}_prebuild.sh || true
+                if [ -f jenkins_prebuild_script.sh ]; then
+                    chmod 755 jenkins_prebuild_script.sh
+                    ./jenkins_prebuild_script.sh
+                fi
+                '''
+            }
+         }
+
+        stage('Build docs') {
+            when {
+                anyOf{
+                    branch 'develop'
+                    branch 'master'
+                    expression { env.CHANGE_ID != null }
+                }
+            } 
+
+            steps {
+                sh '''#!/bin/bash
+                set -xe
+                . jenkinsjobinfo.sh
+                export pythonvirtenvpath=/opt/venvboostdocs
+                if [ -f ${pythonvirtenvpath}/bin/activate ]; then
+                    source ${pythonvirtenvpath}/bin/activate
+                fi
+
+                curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
+                chmod 755 linuxdocs.sh
+                ./linuxdocs.sh --debug --boostrootsubdir --skip-packages
+                # debugging:
+                # mkdir -p boost-root/libs/${REPONAME}/doc/html
+                # echo "qwerty" > boost-root/libs/${REPONAME}/doc/html/index.html
+                # mkdir -p boost-root/doc
+                # echo "qwerty" > boost-root/doc/index.html
+                '''
+                }
+            }
+
+        stage('Postbuild script') {
+            when {
+                anyOf{
+                    branch 'develop'
+                    branch 'master'
+                    expression { env.CHANGE_ID != null }
+                }
+           }
+            steps {
+                sh '''#!/bin/bash
+                set -xe
+
+                . jenkinsjobinfo.sh
+                curl -f -o jenkins_postbuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/master/scripts/${ORGANIZATION}_${REPONAME}_postbuild.sh || true
+                if [ -f jenkins_postbuild_script.sh ]; then
+                    chmod 755 jenkins_postbuild_script.sh
+                    ./jenkins_postbuild_script.sh
+                fi
+                '''
+            }
+         }
+
+        stage('Main branches: Upload to S3') {
+            when {
+                anyOf{
+                    branch 'develop'
+                    branch 'master'
+                }
+            }
+
+            environment {
+                // See https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+                 REPONAME = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${REPONAME}"'
+             )}"""
+                 DNSREPONAME = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DNSREPONAME}"'
+             )}"""
+
+            }
+
+            steps {
+                withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
+                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/libs/${REPONAME}/doc/html", includePathPattern:"**")
+                }
+            }
+        }
+
+
+        stage('Pull requests: Upload to S3') {
+            when { 
+                anyOf{
+                    expression { env.CHANGE_ID != null }
+                }
+            }
+
+            environment {
+                // See https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+                 REPONAME = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${REPONAME}"'
+             )}"""
+                 DNSREPONAME = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DNSREPONAME}"'
+             )}"""
+                 PRTEST = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PRTEST}"'
+             )}"""
+
+            }
+
+            steps {
+                withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
+
+                    // s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/",  workingDir: "boost-root/doc" , includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/src/",  workingDir: "boost-root/doc/src" , includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/libs/${REPONAME}/doc/", workingDir: "boost-root/libs/${REPONAME}/doc", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "boost-root", includePathPattern:"boost.png")
+
+                }
+                script {
+                    pullRequest.comment("An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/libs/${env.REPONAME}/doc/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/libs/${env.REPONAME}/doc/html/index.html)")
+                }
+            }
+        }
+
+        stage('Post Diagnostics') {
+            steps {
+                sh '''#!/bin/bash
+                set -x
+                # not set -e. errors may occur in diagnostics
+                cat jenkinsjobinfo.sh
+                . jenkinsjobinfo.sh
+                ls -al
+                cat /etc/os-release
+                pwd
+                env
+                whoami
+                touch $(date "+%A-%B-%d-%T-%y") 
+                mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}' 
+                git branch
+                git branch -avv
+                true
+                '''
+            }
+        }
+    }
+}
