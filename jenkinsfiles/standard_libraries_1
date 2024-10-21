@@ -34,10 +34,12 @@ pipeline {
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
                 echo "JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
+                echo "JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
                 echo "PRTEST=prtest" >> jenkinsjobinfo.sh
                 echo "REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
                 echo "DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
                 echo "ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
+                echo "ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -75,13 +77,75 @@ pipeline {
                 sh '''#!/bin/bash
                 set -xe
                 . jenkinsjobinfo.sh
-                curl -f -o jenkins_prebuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/master/scripts/${ORGANIZATION}_${REPONAME}_prebuild.sh || true
+                curl -f -o jenkins_prebuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${ORGANIZATION}_${REPONAME}_prebuild.sh || true
                 if [ -f jenkins_prebuild_script.sh ]; then
                     chmod 755 jenkins_prebuild_script.sh
                     ./jenkins_prebuild_script.sh
                 fi
                 '''
             }
+         }
+
+        stage('Check if docs were modified') {
+            when {
+                anyOf{
+                    expression { env.CHANGE_ID != null }
+                }
+           }
+            steps {
+                sh '''#!/bin/bash
+                set -xe
+                . jenkinsjobinfo.sh
+
+                if [ "$ONLY_BUILD_ON_DOCS_MODIFICATION" == "true" ]; then
+                    echo "Starting check to see if docs have been updated."
+                    git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+                    git fetch origin develop
+                    mergebase=$(git merge-base HEAD remotes/origin/develop)
+                    counter=0
+                    for i in $(git diff --name-only HEAD $mergebase)
+                    do
+                      echo "file is $i"
+                      if [[ $i =~ ^doc/ ]]; then
+                        counter=$((counter+1))
+                      fi
+                    done
+
+                    if [ "$counter" -eq "0" ]; then
+                      echo "No docs found. Exiting."
+                      # exit 1
+                      echo "AUTOCANCEL=true" >> jenkinsjobinfo.sh
+                    else
+                      echo "Found $counter docs. Proceeding."
+                    fi
+                 else
+                     echo "Not checking if docs were updated. Always build."
+                 fi
+                '''
+            }
+         }
+
+        stage('Determine if the job should exit') {
+            when {
+                anyOf{
+                    expression { env.CHANGE_ID != null }
+                }
+            }
+             environment {
+                 // See https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+                  AUTOCANCEL = """${sh(
+                  returnStdout: true,
+                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${AUTOCANCEL}"'
+              )}"""
+             }
+              steps {
+                  script {
+                      if (env.AUTOCANCEL == "true") {
+                         currentBuild.result = 'ABORTED'
+                         error("Aborting the build.")
+                       }
+                  }
+              }
          }
 
         // To skip this step, and actually all steps, adjust the job's Filter regex in the Jenkins UI
