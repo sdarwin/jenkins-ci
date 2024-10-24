@@ -7,8 +7,9 @@ if [ -f ${pythonvirtenvpath}/bin/activate ]; then
     source ${pythonvirtenvpath}/bin/activate
 fi
 
-export HOME=${HUDSON_HOME}
+export HOME=${WORKSPACE_TMP}
 ls -al ${HOME}
+ls -al /var/lib/jenkins/workspace
 
 mkdir -p ${WORKSPACE_TMP}/.nvm_${REPONAME}
 export NODE_VERSION=18.18.1
