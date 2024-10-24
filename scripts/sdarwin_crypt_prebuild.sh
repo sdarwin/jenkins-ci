@@ -1,5 +1,5 @@
 #!/bin/bash
 
 set -xe
-echo "PRTEST=prtest2" >> jenkinsjobinfo.sh
-echo "ONLY_BUILD_ON_DOCS_MODIFICATION=true" >> jenkinsjobinfo.sh
+echo "export PRTEST=prtest2" >> jenkinsjobinfo.sh
+echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=true" >> jenkinsjobinfo.sh

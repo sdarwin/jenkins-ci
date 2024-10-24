@@ -33,13 +33,14 @@ pipeline {
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
-                echo "JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
-                echo "JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
-                echo "PRTEST=prtest" >> jenkinsjobinfo.sh
-                echo "REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
-                echo "DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
-                echo "ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
-                echo "ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
+                echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
+                echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
+                echo "export PRTEST=prtest" >> jenkinsjobinfo.sh
+                echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
+                echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
+                echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
+                echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
+                echo "export PATH_TO_DOCS=libs/${REPONAME}/doc" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -114,7 +115,7 @@ pipeline {
                     if [ "$counter" -eq "0" ]; then
                       echo "No docs found. Exiting."
                       # exit 1
-                      echo "AUTOCANCEL=true" >> jenkinsjobinfo.sh
+                      echo "export AUTOCANCEL=true" >> jenkinsjobinfo.sh
                     else
                       echo "Found $counter docs. Proceeding."
                     fi
@@ -168,6 +169,17 @@ pipeline {
                 if [ -f ${pythonvirtenvpath}/bin/activate ]; then
                     source ${pythonvirtenvpath}/bin/activate
                 fi
+
+                # Is there a custom build script? Often not. But let's check:
+
+                curl -f -o jenkins_build_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${ORGANIZATION}_${REPONAME}_build.sh || true
+                if [ -f jenkins_build_script.sh ]; then
+                    chmod 755 jenkins_build_script.sh
+                    ./jenkins_build_script.sh
+                    exit 0
+                fi
+
+                # Otherwise, proceed using standard build steps:
 
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
@@ -253,6 +265,14 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PRTEST}"'
              )}"""
+                 PATH_TO_DOCS = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
+             )}"""
+                 DIFF2HTML = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DIFF2HTML}"'
+             )}"""
 
             }
 
@@ -261,12 +281,22 @@ pipeline {
 
                     // s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/",  workingDir: "boost-root/doc" , includePathPattern:"**")
                     s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/src/",  workingDir: "boost-root/doc/src" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/libs/${REPONAME}/doc/", workingDir: "boost-root/libs/${REPONAME}/doc", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"**")
                     s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "boost-root", includePathPattern:"boost.png")
 
                 }
                 script {
-                    pullRequest.comment("An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/libs/${env.REPONAME}/doc/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/libs/${env.REPONAME}/doc/html/index.html)")
+
+                    commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html)"
+
+                    // Per-repo customizations
+
+                    if ( DIFF2HTML == "true" ) {
+                        commenttext = commenttext + "\n\nDiff2html diff: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)"
+                    }
+
+                    pullRequest.comment(commenttext)
+
                 }
             }
         }
