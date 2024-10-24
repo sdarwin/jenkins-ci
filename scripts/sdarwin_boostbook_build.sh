@@ -7,6 +7,9 @@ if [ -f ${pythonvirtenvpath}/bin/activate ]; then
     source ${pythonvirtenvpath}/bin/activate
 fi
 
+export HOME=${HUDSON_HOME}
+ls -al ${HOME}
+
 mkdir -p ${WORKSPACE_TMP}/.nvm_${REPONAME}
 export NODE_VERSION=18.18.1
 # The container has a pre-installed nodejs. Overwrite those again.
