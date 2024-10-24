@@ -40,6 +40,7 @@ pipeline {
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
                 echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
                 echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
+                echo "export PATH_TO_DOCS=libs/${REPONAME}/doc" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -264,6 +265,10 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PRTEST}"'
              )}"""
+                 PATH_TO_DOCS = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
+             )}"""
 
             }
 
@@ -272,7 +277,7 @@ pipeline {
 
                     // s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/",  workingDir: "boost-root/doc" , includePathPattern:"**")
                     s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/src/",  workingDir: "boost-root/doc/src" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/libs/${REPONAME}/doc/", workingDir: "boost-root/libs/${REPONAME}/doc", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"**")
                     s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "boost-root", includePathPattern:"boost.png")
 
                 }
