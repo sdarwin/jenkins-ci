@@ -12,18 +12,18 @@ export HOME=$(pwd)/jenkins_tmp_home
 ls -al ${HOME}
 ls -al /var/lib/jenkins/workspace
 
-mkdir -p ${WORKSPACE_TMP}/.nvm_${REPONAME}
+mkdir -p ${HOME}/.nvm_${REPONAME}
 export NODE_VERSION=18.18.1
 # The container has a pre-installed nodejs. Overwrite those again.
-export NVM_BIN="${WORKSPACE_TMP}/.nvm_${REPONAME}/versions/node/v18.18.1/bin"
-export NVM_DIR=${WORKSPACE_TMP}/.nvm_${REPONAME}
-export NVM_INC=${WORKSPACE_TMP}/.nvm_${REPONAME}/versions/node/v18.18.1/include/node
+export NVM_BIN="${HOME}/.nvm_${REPONAME}/versions/node/v18.18.1/bin"
+export NVM_DIR=${HOME}/.nvm_${REPONAME}
+export NVM_INC=${HOME}/.nvm_${REPONAME}/versions/node/v18.18.1/include/node
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-export NVM_DIR=${WORKSPACE_TMP}/.nvm_${REPONAME}
+export NVM_DIR=${HOME}/.nvm_${REPONAME}
 . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
 . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
 . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
-export PATH="$(pwd)/node_modules/.bin:${WORKSPACE_TMP}/.nvm_${REPONAME}/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+export PATH="$(pwd)/node_modules/.bin:${HOME}/.nvm_${REPONAME}/versions/node/v${NODE_VERSION}/bin/:${PATH}"
 node --version
 npm --version
 npm install diff2html-cli
