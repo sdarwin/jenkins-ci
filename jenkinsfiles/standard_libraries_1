@@ -33,13 +33,13 @@ pipeline {
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
-                echo "JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
-                echo "JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
-                echo "PRTEST=prtest" >> jenkinsjobinfo.sh
-                echo "REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
-                echo "DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
-                echo "ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
-                echo "ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
+                echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
+                echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
+                echo "export PRTEST=prtest" >> jenkinsjobinfo.sh
+                echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
+                echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
+                echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
+                echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -114,7 +114,7 @@ pipeline {
                     if [ "$counter" -eq "0" ]; then
                       echo "No docs found. Exiting."
                       # exit 1
-                      echo "AUTOCANCEL=true" >> jenkinsjobinfo.sh
+                      echo "export AUTOCANCEL=true" >> jenkinsjobinfo.sh
                     else
                       echo "Found $counter docs. Proceeding."
                     fi
@@ -168,6 +168,17 @@ pipeline {
                 if [ -f ${pythonvirtenvpath}/bin/activate ]; then
                     source ${pythonvirtenvpath}/bin/activate
                 fi
+
+                # Is there a custom build script? Often not. But let's check:
+
+                curl -f -o jenkins_build_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${ORGANIZATION}_${REPONAME}_build.sh || true
+                if [ -f jenkins_build_script.sh ]; then
+                    chmod 755 jenkins_build_script.sh
+                    ./jenkins_build_script.sh
+                    exit 0
+                fi
+
+                # Otherwise, proceed using standard build steps:
 
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
