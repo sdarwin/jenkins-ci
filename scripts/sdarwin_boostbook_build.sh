@@ -7,7 +7,8 @@ if [ -f ${pythonvirtenvpath}/bin/activate ]; then
     source ${pythonvirtenvpath}/bin/activate
 fi
 
-export HOME=${WORKSPACE_TMP}
+mkdir -p $(pwd)/jenkins_tmp_home
+export HOME=$(pwd)/jenkins_tmp_home
 ls -al ${HOME}
 ls -al /var/lib/jenkins/workspace
 
