@@ -288,15 +288,16 @@ pipeline {
 
                 }
                 script {
-                    pullRequest.comment("An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html)")
+
+                    comment_text = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html)"
 
                     // Per-repo customizations
 
                     if ( DIFF2HTML == "true" ) {
-                        pullRequest.comment("Diff2html diff: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)")
+                        comment_text = commment_text + " text1\n test2 \n\n\n test3 <br> Diff2html diff: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)"
                     }
 
-                    pullRequest.comment("Testing to remove: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)")
+                    pullRequest.comment(comment_text)
 
                 }
             }
