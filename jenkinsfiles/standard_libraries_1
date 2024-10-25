@@ -35,6 +35,8 @@ pipeline {
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
                 echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
                 echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
+                # echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
+                # echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
                 echo "export PRTEST=prtest" >> jenkinsjobinfo.sh
                 echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
@@ -206,7 +208,7 @@ pipeline {
                 set -xe
 
                 . jenkinsjobinfo.sh
-                curl -f -o jenkins_postbuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/master/scripts/${ORGANIZATION}_${REPONAME}_postbuild.sh || true
+                curl -f -o jenkins_postbuild_script.sh https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${ORGANIZATION}_${REPONAME}_postbuild.sh || true
                 if [ -f jenkins_postbuild_script.sh ]; then
                     chmod 755 jenkins_postbuild_script.sh
                     ./jenkins_postbuild_script.sh
@@ -233,12 +235,15 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DNSREPONAME}"'
              )}"""
-
+                 PATH_TO_DOCS = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
+             )}"""
             }
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/libs/${REPONAME}/doc/html", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
                 }
             }
         }
@@ -291,7 +296,7 @@ pipeline {
 
                     // Per-repo customizations
 
-                    if ( DIFF2HTML == "true" ) {
+                    if ( (env.DIFF2HTML != null) && (env.DIFF2HTML == "true") ) {
                         commenttext = commenttext + "\n\nDiff2html diff: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)"
                     }
 
