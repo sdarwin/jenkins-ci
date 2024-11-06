@@ -11,6 +11,8 @@ Install Jenkins - https://www.jenkins.io/doc/book/installing/
 
 Initially a n2-standard-2 on GCE, 100GB disk. That may change.   
 
+Manually create a jenkins:jenkins user with uid and gid of 150, so those values are predictable for use in containers.
+
 Install the Jenkins package:  
 
 ```
