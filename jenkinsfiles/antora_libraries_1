@@ -8,7 +8,8 @@ pipeline {
 
     agent {
         docker {
-          image 'cppalliance/boost_superproject_build:24.04-v1'
+          image 'cppalliance/boost_superproject_build:24.04-v2'
+          args '-v /var/lib/jenkins/jenkinsfilecache:/jenkinsfilecache'
           // label 'jenkinspool1'
           }
     }
@@ -18,7 +19,9 @@ pipeline {
             steps {
                 sh """#!/bin/bash
                 set -xe
+                ls -al || true
                 rm -rf * .*
+                ls -al || true
                 """
                 checkout scm
             }
@@ -42,7 +45,7 @@ pipeline {
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
                 echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
                 echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
-                echo "export PATH_TO_DOCS=libs/${REPONAME}/doc" >> jenkinsjobinfo.sh
+                echo "export PATH_TO_DOCS=doc/build/site" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -185,12 +188,50 @@ pipeline {
 
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
-                ./linuxdocs.sh --debug --boostrootsubdir --skip-packages
-                # debugging:
-                # mkdir -p boost-root/libs/${REPONAME}/doc/html
-                # echo "qwerty" > boost-root/libs/${REPONAME}/doc/html/index.html
-                # mkdir -p boost-root/doc
-                # echo "qwerty" > boost-root/doc/index.html
+
+                # 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
+                # Since some implementations of antora/mrdocs seem to be using boost-root, symlink the filecache to the boost-root,
+		# so it will use the cache no-matter-what (hopefully).
+                savedworkspacedir=$(pwd)
+                cd /jenkinsfilecache
+                if [[ "${JOB_BASE_NAME}" =~ PR ]]; then
+                    CACHE_FOLDER="PR"
+                    BOOST_BRANCH="develop"
+                else
+                    CACHE_FOLDER=${JOB_BASE_NAME}
+                    BOOST_BRANCH=${BRANCH_NAME}
+                fi
+                mkdir -p ${REPONAME}/${CACHE_FOLDER}
+                cd ${REPONAME}/${CACHE_FOLDER}
+                if [ ! -d boost ]; then
+                    git clone https://github.com/boostorg/boost -b ${BOOST_BRANCH}
+                fi
+                cd boost
+                git checkout ${BOOST_BRANCH}
+                git pull
+                git submodule update --init
+                FILECACHE_PATH=$(pwd)
+                cd libs
+                if [ ! -d buffers ]; then
+                   git clone https://github.com/cppalliance/buffers -b ${BOOST_BRANCH}
+                else
+                   cd buffers
+                   git checkout -b ${BOOST_BRANCH} || true
+                   git pull || true
+                   cd ..
+                fi
+                cd ..
+                cd $savedworkspacedir
+                ln -s ${FILECACHE_PATH} boost-root || true
+                export BOOST_SRC_DIR=$(pwd)/boost-root
+
+                # </done> 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
+
+                ./linuxdocs.sh --debug --boostrootsubdir
+
+		# Another issue, if boost-root is now a symlink, it disappears when the docker container is gone  
+                # Copy the docs "locally"
+                cp -rp boost-root/libs/${REPONAME}/doc/* doc/
                 '''
                 }
             }
@@ -243,7 +284,7 @@ pipeline {
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "${PATH_TO_DOCS}", includePathPattern:"**")
                 }
             }
         }
@@ -283,22 +324,11 @@ pipeline {
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-
-                    // s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/",  workingDir: "boost-root/doc" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/src/",  workingDir: "boost-root/doc/src" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "boost-root", includePathPattern:"boost.png")
-
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "${PATH_TO_DOCS}", includePathPattern:"**")
                 }
                 script {
 
-                    commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/index.html)"
-
-                    // Per-repo customizations
-
-                    if ( (env.DIFF2HTML != null) && (env.DIFF2HTML == "true") ) {
-                        commenttext = commenttext + "\n\nDiff2html diff: [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/${PATH_TO_DOCS}/html/diff.html)"
-                    }
+                    commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html)"
 
                     pullRequest.comment(commenttext)
 
