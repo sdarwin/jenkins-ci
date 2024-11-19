@@ -33,8 +33,15 @@ pipeline {
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
-                echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
-                echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
+                if [[ "${GIT_URL}" =~ sdarwin ]]; then
+                    # testing environment
+                    echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
+                    echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
+                else
+                    # standard
+                    echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
+                    echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
+                fi
                 # echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
                 # echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
                 echo "export PRTEST=prtest" >> jenkinsjobinfo.sh
