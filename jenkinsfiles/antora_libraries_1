@@ -229,6 +229,12 @@ pipeline {
                         pushd $BOOST_ROOT/libs
                         git clone https://github.com/${EXTRA_LIB} -b $BOOST_BRANCH --depth 1
                         popd
+                    else
+                        # refresh extra lib:
+                        pushd $BOOST_ROOT/libs/${EXTRA_LIB_REPO}
+                        git checkout $BOOST_BRANCH || true
+                        git pull || true
+                        popd
                     fi
                 done
 
