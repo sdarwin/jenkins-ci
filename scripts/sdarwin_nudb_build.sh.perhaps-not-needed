@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -xe
+
+git submodule update --init doc/docca
+cd doc
+chmod 755 makeqbk.sh
+./makeqbk.sh
+cd ..
+sed -i 's,path-constant TEST_MAIN : $(BOOST_ROOT)/boost/beast/_experimental/unit_test/main.cpp ;,,' Jamroot
+
+curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
+chmod 755 linuxdocs.sh
+
+./linuxdocs.sh --debug --boostrootsubdir --skip-packages || true
+
+# Will this be needed?
+# cd boost-root
+# ./b2 -j3 libs/nudb/doc//boostdoc 
+# pwd
+# cd ..
+
