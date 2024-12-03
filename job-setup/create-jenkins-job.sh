@@ -197,11 +197,21 @@ function initial_main_setup {
         echo "The job, and config.xml, already exist, at ${destfile}. Not copying in a new file."
     fi
 
-    # Completion message
-    echo ""
-    echo "Testing environment set up. Go to ~/github/${github_test_org}/jenkins-ci in the 'testing' branch, and verify the job is correct."
-    echo "After that has been confirmed, run this script again with the --deploy option, to 'go live'."
-    echo ""
+    # Completion messages
+    if [ "${testing_branch_success}" = "yes" ]; then
+        echo ""
+        echo "Testing environment set up. Go to ~/github/${github_test_org}/jenkins-ci in the 'testing' branch, and verify the job is correct."
+        echo "After that has been confirmed, run this script again with the --deploy option, to 'go live'."
+        echo ""
+    else
+        echo ""
+        echo "Testing environment in ~/github/${github_test_org}/jenkins-ci was not completed."
+        echo "There may be multiple reasons for that problem. The feature is currently in development."
+        echo "Please go to that directory and manually configure the 'testing' branch, based on the latest copy of 'master'"
+        echo "Proceed to test the jobs."
+        echo "Then run this script again with the --deploy option, to 'go live'."
+        echo ""
+    fi
 }
 
 function deploy_job {
@@ -227,6 +237,9 @@ function prepare_testing_branch {
     echo "The jobs themselves are configured to reference that branch, and will need to be modified right before going live, to again point to production."
     echo ""
 
+    set -x
+
+    testing_branch_success="yes"
     previousdir=$(pwd)
     mkdir -p "$HOME/github/${github_test_org}"
     cd "$HOME/github/${github_test_org}"
@@ -247,7 +260,7 @@ function prepare_testing_branch {
         echo "git diff --cached ok"
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        sleep 5
+        testing_branch_success="no"
         cd "${previousdir}"
         return "0"
     fi
@@ -256,7 +269,6 @@ function prepare_testing_branch {
         echo "git diff ok"
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        sleep 5
         cd "${previousdir}"
         return "0"
     fi
@@ -264,7 +276,7 @@ function prepare_testing_branch {
         echo "git diff --cached ok"
     else
         echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        sleep 5
+        testing_branch_success="no"
         cd "${previousdir}"
         return "0"
     fi
@@ -273,7 +285,7 @@ function prepare_testing_branch {
         echo "git diff ok"
     else
         echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        sleep 5
+        testing_branch_success="no"
         cd "${previousdir}"
         return "0"
     fi
@@ -284,8 +296,8 @@ function prepare_testing_branch {
     git branch -d testing
     git checkout -b testing
     echo "Testing branch configured successfully"
-    sleep 5
     cd "${previousdir}"
+    set +x
 }
 
 function check_in_testing_branch {
