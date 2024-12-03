@@ -193,6 +193,14 @@ pipeline {
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
                 ./linuxdocs.sh --debug --boostrootsubdir --skip-packages
+
+                # Fix index.html
+                sourcefile=boost-root/libs/${REPONAME}/doc/html/${REPONAME}.html
+                destfile=boost-root/libs/${REPONAME}/doc/html/index.html
+                if [[ ! -f $destfile && -f $sourcefile ]]; then
+                    cp $sourcefile $destfile
+                fi
+
                 # debugging:
                 # mkdir -p boost-root/libs/${REPONAME}/doc/html
                 # echo "qwerty" > boost-root/libs/${REPONAME}/doc/html/index.html
