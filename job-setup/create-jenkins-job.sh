@@ -185,6 +185,12 @@ function initial_main_setup {
     else
         echo "The job, and config.xml, already exist, at ${destfile}. Not copying in a new file."
     fi
+
+    # Completion message
+    echo ""
+    echo "Testing environment set up. Go to ~/github/${github_test_org}/jenkins-ci in the 'testing' branch, and verify the job is correct."
+    echo "After that has been confirmed, run this script again with the --deploy option, to 'go live'."
+    echo ""
 }
 
 function deploy_job {
