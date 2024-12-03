@@ -40,6 +40,7 @@ Builds library documentation.
 
 optional arguments:
   -h, --help            Show this help message and exit
+  -s, --suffix SUFFIX   Add a suffix to the job name. json_benchmarks instead of json.
   -d, --deploy          Convert an initial test job to production
 standard arguments:
   library_repo	Example: boostorg/asio
@@ -50,6 +51,11 @@ standard arguments:
 	    echo ""
             exit 0
             ;;
+        -s|--suffix)
+            case "$2" in
+                "") suffix_option="" ; shift 2 ;;
+                 *) suffix_option=$2 ; shift 2 ;;
+            esac ;;
 	-d|--deploy)
 	    deployoption="yes" ; shift 2 ;;
         --) shift ; break ;;
@@ -71,10 +77,15 @@ fi
 
 if [ -n "$1" ]; then
     repo_stub=$1
-    repo_url=htpps://github.com/$1
+    repo_url=https://github.com/$1
     repo_name=$(basename -s .git "${repo_url}")
     # shellcheck disable=SC2034,SC2046
     repo_org=$(basename $(dirname "${repo_url}"))
+    if [ -n "$suffix_option" ]; then
+        job_name="${repo_name}_${suffix_option}"
+    else
+        job_name="${repo_name}"
+    fi
 else
     echo "Repo not set. Exiting."
     exit 1
@@ -86,7 +97,7 @@ function initial_main_setup {
 
     ####################
     #
-    # The first series of steps creates a pull request in the github_test_org organization
+    # The first series of steps creates a pull request in the ${github_test_org} organization
     # which will be used to test jenkins jobs with pull requests
     #
     ####################
@@ -154,14 +165,14 @@ function initial_main_setup {
     #####################
     
     if [ -f doc/build_antora.sh ] ; then
-        jobtype="antora_libraries_1"
+        job_type="antora_libraries_1"
     else
-        jobtype="standard_libraries_1"
+        job_type="standard_libraries_1"
     fi
     
     tmpdir=$(mktemp -d)
     
-    cp "$scriptlocation/job-templates/${jobtype}/config.xml" "${tmpdir}/config.xml"
+    cp "$scriptlocation/job-templates/${job_type}/config.xml" "${tmpdir}/config.xml"
     cd "${tmpdir}"
     
     echo "Running sed to customize config.xml in ${tmpdir}"
@@ -173,12 +184,12 @@ function initial_main_setup {
     echo "last sed"
     sed -i "s|<name>\*/master</name>|<name>\*/testing</name>|" config.xml
     
-    mkdir -p "/var/lib/jenkins/jobs/${repo_name}"
-    chown jenkins:jenkins "/var/lib/jenkins/jobs/${repo_name}"
+    mkdir -p "/var/lib/jenkins/jobs/${job_name}"
+    chown jenkins:jenkins "/var/lib/jenkins/jobs/${job_name}"
     chown jenkins:jenkins config.xml
-    destfile="/var/lib/jenkins/jobs/${repo_name}/config.xml"
+    destfile="/var/lib/jenkins/jobs/${job_name}/config.xml"
     if [ ! -f "${destfile}" ]; then
-        cp -p config.xml "/var/lib/jenkins/jobs/${repo_name}/config.xml"
+        cp -p config.xml "/var/lib/jenkins/jobs/${job_name}/config.xml"
         # shellcheck source=/dev/null
         . ~/.config/jenkins_credentials
         java -jar /usr/bin/jenkins-cli.jar -s http://localhost:8080 -auth "$JENKINS_USER:$JENKINS_PASSWORD" reload-configuration
@@ -197,7 +208,7 @@ function deploy_job {
  
     echo "Deploy the test job to production"
 
-    configfile="/var/lib/jenkins/jobs/${repo_name}/config.xml"
+    configfile="/var/lib/jenkins/jobs/${job_name}/config.xml"
     sed -i "s|$github_test_org|$repo_org|g" "${configfile}"
     sed -i "s|<name>\*/testing</name>|<name>\*/master</name>|" "${configfile}"
     # shellcheck source=/dev/null
@@ -282,14 +293,14 @@ function check_in_testing_branch {
     newtargetbranch="${repo_name}-${timestamper}"
     previousdir=$(pwd)
     cd "$HOME/github/${github_test_org}/jenkins-ci/scripts"
-    if [ -f "${github_test_org}_${repo_name}_prebuild.sh" ]; then
-        mv "${github_test_org}_${repo_name}_prebuild.sh" "${repo_org}_${repo_name}_prebuild.sh"
+    if [ -f "${github_test_org}_${job_name}_prebuild.sh" ]; then
+        mv "${github_test_org}_${job_name}_prebuild.sh" "${repo_org}_${job_name}_prebuild.sh"
     fi
-    if [ -f "${github_test_org}_${repo_name}_build.sh" ]; then
-        mv "${github_test_org}_${repo_name}_build.sh" "${repo_org}_${repo_name}_build.sh"
+    if [ -f "${github_test_org}_${job_name}_build.sh" ]; then
+        mv "${github_test_org}_${job_name}_build.sh" "${repo_org}_${job_name}_build.sh"
     fi
-    if [ -f "${github_test_org}_${repo_name}_postbuild.sh" ]; then
-        mv "${github_test_org}_${repo_name}_postbuild.sh" "${repo_org}_${repo_name}_prebuild.sh"
+    if [ -f "${github_test_org}_${job_name}_postbuild.sh" ]; then
+        mv "${github_test_org}_${job_name}_postbuild.sh" "${repo_org}_${job_name}_prebuild.sh"
     fi
     git add .
     if ! git diff-index --quiet HEAD; then
