@@ -26,7 +26,7 @@ timestamper=$(date "+%Y-%m-%d-%H-%M-%S")
 
 # READ IN COMMAND-LINE OPTIONS
 
-TEMP=$(getopt -o h::,d:: --long help::,deploy:: -- "$@")
+TEMP=$(getopt -o h::,d::,s: --long help::,deploy::,suffix: -- "$@")
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -77,6 +77,11 @@ fi
 
 if [ -n "$1" ]; then
     repo_stub=$1
+    if [[ ! "$repo_stub" =~ / ]]; then
+        echo "The repository value you provide to this script should match the format 'org/repo'."
+        echo "Exiting".
+        exit 1
+    fi
     repo_url=https://github.com/$1
     repo_name=$(basename -s .git "${repo_url}")
     # shellcheck disable=SC2034,SC2046
@@ -176,6 +181,7 @@ function initial_main_setup {
     cd "${tmpdir}"
     
     echo "Running sed to customize config.xml in ${tmpdir}"
+    sed -i "s/template_job_name/${job_name}/g" config.xml
     sed -i "s/template_repository/${repo_name}/g" config.xml
     sed -i "s/template_organization/${github_test_org}/g" config.xml
     # Still in testing mode for a new repo:
@@ -248,19 +254,20 @@ function prepare_testing_branch {
     fi
     cd jenkins-ci
     git fetch origin
-    git remote add upstream https://github.com/cppalliance/jenkins-ci || true
+    git remote add upstream https://github.com/cppalliance/jenkins-ci > /dev/null || true
     git fetch origin
     git fetch upstream
     if git branch -vv | grep "origin/testing" ; then
         echo "on the correct branch"
     else
-        git checkout testing || git checkout --track origin/testing
+        git checkout testing > /dev/null || git checkout --track origin/testing
     fi
     if git diff --cached --exit-code > /dev/null ; then
         echo "git diff --cached ok"
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
         testing_branch_success="no"
+        set +x
         cd "${previousdir}"
         return "0"
     fi
@@ -269,26 +276,31 @@ function prepare_testing_branch {
         echo "git diff ok"
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        cd "${previousdir}"
-        return "0"
-    fi
-    if git diff origin/testing --cached --exit-code > /dev/null ; then
-        echo "git diff --cached ok"
-    else
-        echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
         testing_branch_success="no"
+        set +x
         cd "${previousdir}"
         return "0"
     fi
+    # Perhaps these checks can be allowed to fail
+    # if git diff origin/testing --cached --exit-code > /dev/null ; then
+    #     echo "git diff --cached ok"
+    # else
+    #     echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
+    #     testing_branch_success="no"
+    #     set +x
+    #     cd "${previousdir}"
+    #     return "0"
+    # fi
 
-    if git diff origin/testing --exit-code > /dev/null ; then
-        echo "git diff ok"
-    else
-        echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
-        testing_branch_success="no"
-        cd "${previousdir}"
-        return "0"
-    fi
+    # if git diff origin/testing --exit-code > /dev/null ; then
+    #     echo "git diff ok"
+    # else
+    #     echo "git diff origin/testing has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
+    #     testing_branch_success="no"
+    #     set +x
+    #     cd "${previousdir}"
+    #     return "0"
+    # fi
 
     git checkout master || git checkout --track origin/master
     git pull
