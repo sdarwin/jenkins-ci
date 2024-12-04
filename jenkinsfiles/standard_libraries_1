@@ -42,8 +42,6 @@ pipeline {
                     echo "export JENKINS_CI_REPO=cppalliance/jenkins-ci" >> jenkinsjobinfo.sh
                     echo "export JENKINS_CI_REPO_BRANCH=master" >> jenkinsjobinfo.sh
                 fi
-                # echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
-                # echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
                 echo "export PRTEST=prtest" >> jenkinsjobinfo.sh
                 echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
@@ -64,7 +62,7 @@ pipeline {
                 ls -al
                 cat /etc/os-release
                 pwd
-                env 
+                env
                 whoami
                 touch $(date "+%A-%B-%d-%T-%y")
                 mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}'
@@ -82,7 +80,7 @@ pipeline {
                     branch 'master'
                     expression { env.CHANGE_ID != null }
                 }
-           } 
+           }
             steps {
                 sh '''#!/bin/bash
                 set -xe
@@ -168,7 +166,7 @@ pipeline {
                     branch 'master'
                     expression { env.CHANGE_ID != null }
                 }
-            } 
+            }
 
             steps {
                 sh '''#!/bin/bash
@@ -333,8 +331,8 @@ pipeline {
                 pwd
                 env
                 whoami
-                touch $(date "+%A-%B-%d-%T-%y") 
-                mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}' 
+                touch $(date "+%A-%B-%d-%T-%y")
+                mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}'
                 git branch
                 git branch -avv
                 true
