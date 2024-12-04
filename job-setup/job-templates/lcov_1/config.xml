@@ -35,7 +35,7 @@
         <source class="org.jenkinsci.plugins.github_branch_source.GitHubSCMSource" plugin="github-branch-source@1797.v86fdb_4d57d43">
           <id>7215d08d-6f72-4982-b387-bd172033d31b</id>
           <apiUri>https://api.github.com</apiUri>
-          <credentialsId>3bb0e8fa-fa09-4f0b-a809-c827d13a4644</credentialsId>
+          <credentialsId>github-cppalliance-bot</credentialsId>
           <repoOwner>template_organization</repoOwner>
           <repository>template_repository</repository>
           <repositoryUrl>https://github.com/template_organization/template_repository</repositoryUrl>
@@ -72,7 +72,7 @@
       <userRemoteConfigs>
         <hudson.plugins.git.UserRemoteConfig>
           <url>https://github.com/cppalliance/jenkins-ci</url>
-          <credentialsId>3bb0e8fa-fa09-4f0b-a809-c827d13a4644</credentialsId>
+          <credentialsId>github-cppalliance-bot</credentialsId>
         </hudson.plugins.git.UserRemoteConfig>
       </userRemoteConfigs>
       <branches>
