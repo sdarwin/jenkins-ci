@@ -8,7 +8,7 @@ pipeline {
 
     agent {
         docker {
-          image 'cppalliance/boost_superproject_build:24.04-v1'
+          image 'cppalliance/boost_superproject_build:24.04-v2'
           // label 'jenkinspool1'
           }
     }
@@ -130,7 +130,7 @@ pipeline {
                 fi 
 
                 # Clear out s3 bucket:
-                pip3 install -q awscli 
+                sudo pip3 install -q awscli 
                 export PATH=$HOME/.local/bin:$PATH
                 echo "deleting files."
                 aws s3 rm --recursive s3://cppalliance-previews/${DNSREPONAME}/${CHANGE_ID}/
