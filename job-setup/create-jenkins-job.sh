@@ -227,6 +227,7 @@ function deploy_job {
     configfile="/var/lib/jenkins/jobs/${job_name}/config.xml"
     sed -i "s|<repoOwner>$github_test_org|<repoOwner>$repo_org|g" "${configfile}"
     sed -i "s|<repositoryUrl>https://github.com/$github_test_org|<repositoryUrl>https://github.com/$repo_org|g" "${configfile}"
+    sed -i "s|<url>https://github.com/$github_test_org/jenkins-ci|<url>https://github.com/cppalliance/jenkins-ci|g" "${configfile}"
     sed -i "s|<name>\*/testing</name>|<name>\*/master</name>|" "${configfile}"
     # shellcheck source=/dev/null
     . ~/.config/jenkins_credentials
@@ -330,6 +331,8 @@ function check_in_testing_branch {
     git add .
     if ! git diff-index --quiet HEAD; then
         git commit -m "${repo_stub}"
+        git remote set-url origin "https://testbot:${GH_TOKEN}@github.com/${github_test_org}/jenkins-ci"
+        git push
     fi
     git checkout -b "test-backup-${timestamper}"
     git checkout master
