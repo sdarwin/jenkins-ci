@@ -170,23 +170,18 @@ pipeline {
                 
                 rm build/index.html || true
 
-                # echo "$generatedindexpage" > build/index.html
+                index_file="build/index.html"
+                echo "<!DOCTYPE html>" > ${index_file}
+                echo "<html>" >> ${index_file} 
+                echo "  <head>" >> ${index_file}
+                echo "    <meta http-equiv=\"Refresh\" content=\"0; url='user-guide/index.html'\" />" >> ${index_file}
+                echo "  </head>" >> ${index_file}
+                echo "  <body>" >> ${index_file}
+                echo "    <p>You will be redirected to user-guide/index.html soon!</p>" ${index_file}
+                echo "  </body>" >> ${index_file}
+                echo "</html>" >> ${index_file}
 
-                generatedindexpage="
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <meta http-equiv=\"Refresh\" content=\"0; url='user-guide/index.html'\" />
-                  </head>
-                  <body>
-                    <p>You will be redirected to user-guide/index.html soon!</p>
-                  </body>
-                </html>
-                "
-
-                echo "$generatedindexpage" > build/index.html
-
-
+                cat ${index_file}
                 '''
                 }
             }
