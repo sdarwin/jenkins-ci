@@ -31,7 +31,10 @@ pipeline {
                 chmod 777 jenkinsjobinfo.sh
                 REPONAME=$(basename -s .git "$(git config --get remote.origin.url)")
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
-                DNSREPONAME=$(echo $REPONAME | tr '_' '-')
+                # If this jenkinsfile will be used for multiple repos then it should use the general form of DNSREPONAME:
+                # DNSREPONAME=$(echo $REPONAME | tr '_' '-')
+                # However at the moment it's only used by website-v2-docs. For the time being, the customization may be placed here:
+                DNSREPONAME="site-docs"
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
                 if [[ "${GIT_URL}" =~ sdarwin ]]; then
                     # testing environment
