@@ -225,7 +225,8 @@ function deploy_job {
     echo "Deploy the test job to production"
 
     configfile="/var/lib/jenkins/jobs/${job_name}/config.xml"
-    sed -i "s|$github_test_org|$repo_org|g" "${configfile}"
+    sed -i "s|<repoOwner>$github_test_org|<repoOwner>$repo_org|g" "${configfile}"
+    sed -i "s|<repositoryUrl>https://github.com/$github_test_org|<repositoryUrl>https://github.com/$repo_org|g" "${configfile}"
     sed -i "s|<name>\*/testing</name>|<name>\*/master</name>|" "${configfile}"
     # shellcheck source=/dev/null
     . ~/.config/jenkins_credentials
