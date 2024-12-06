@@ -105,7 +105,6 @@ pipeline {
             }
 
             steps {
-                withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
                 sh '''#!/bin/bash
                 set -xe
                 . jenkinsjobinfo.sh
@@ -130,12 +129,6 @@ pipeline {
                     source ${pythonvirtenvpath}/bin/activate
                 fi 
 
-                # Clear out s3 bucket:
-                # awscli already in the image
-                # sudo pip3 install -q awscli
-                export PATH=$HOME/.local/bin:$PATH
-                echo "deleting files."
-                aws s3 rm --recursive s3://cppalliance-previews/${DNSREPONAME}/${CHANGE_ID}/
                 echo "env"
                 env
                 
@@ -193,7 +186,6 @@ pipeline {
 
                 '''
                 }
-                }
             }
 
         stage('Postbuild script') {
@@ -239,7 +231,12 @@ pipeline {
             }
 
             steps {
+
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
+                    sh '''#!/bin/bash
+                        set -xe
+                        aws s3 rm --recursive s3://cppalliance-websites/${BRANCH_NAME}.${DNSREPONAME}.cpp.al/
+                    '''
                     s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "build", includePathPattern:"**")
                 }
             }
@@ -272,6 +269,11 @@ pipeline {
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
+
+                    sh '''#!/bin/bash
+                        set -xe
+                        aws s3 rm --recursive s3://cppalliance-previews/${DNSREPONAME}/${CHANGE_ID}/
+                    '''
 
                     s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/",  workingDir: "build" , includePathPattern:"**")
 
