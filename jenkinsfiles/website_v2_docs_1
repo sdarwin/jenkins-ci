@@ -169,21 +169,8 @@ pipeline {
                 ./build.sh ${CHANGE_TARGET}
                 
                 rm build/index.html || true
-
-                index_file="build/index.html"
-                problematic_string="    <meta http-equiv=\"Refresh\" content=\"0; url='user-guide/index.html'\" />"
-                echo "problematic_string is ${problematic_string}"
-                echo "<!DOCTYPE html>" > ${index_file}
-                echo "<html>" >> ${index_file} 
-                echo "  <head>" >> ${index_file}
-                echo "${problematic_string}" >> ${index_file}
-                echo "  </head>" >> ${index_file}
-                echo "  <body>" >> ${index_file}
-                echo "    <p>You will be redirected to user-guide/index.html soon!</p>" >> ${index_file}
-                echo "  </body>" >> ${index_file}
-                echo "</html>" >> ${index_file}
-
-                cat ${index_file}
+                curl -f -o build/index.html https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${ORGANIZATION}_${REPONAME}_index.html
+                cat  build/index.html
                 '''
                 }
             }
