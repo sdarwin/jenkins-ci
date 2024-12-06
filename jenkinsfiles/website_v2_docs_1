@@ -105,6 +105,7 @@ pipeline {
             }
 
             steps {
+                withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
                 sh '''#!/bin/bash
                 set -xe
                 . jenkinsjobinfo.sh
@@ -130,7 +131,8 @@ pipeline {
                 fi 
 
                 # Clear out s3 bucket:
-                sudo pip3 install -q awscli 
+                # awscli already in the image
+                # sudo pip3 install -q awscli
                 export PATH=$HOME/.local/bin:$PATH
                 echo "deleting files."
                 aws s3 rm --recursive s3://cppalliance-previews/${DNSREPONAME}/${CHANGE_ID}/
@@ -190,6 +192,7 @@ pipeline {
 
 
                 '''
+                }
                 }
             }
 
