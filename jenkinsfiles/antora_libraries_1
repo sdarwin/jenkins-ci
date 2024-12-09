@@ -215,6 +215,10 @@ pipeline {
                 # not 'exporting' this, just for the following section.
                 BOOST_ROOT=$(pwd)
                 git checkout ${BOOST_BRANCH}
+                rm -rf libs/${REPONAME}/* || true
+                rm -rf libs/${REPONAME}/.* || true
+                rm -rf tools/${REPONAME}/* || true
+                rm -rf tools/${REPONAME}/.* || true
                 git pull
                 git submodule update --init
                 FILECACHE_PATH=$(pwd)
