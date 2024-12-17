@@ -70,8 +70,8 @@ fi
 
 if [ -z "${GH_TOKEN}" ]; then
     echo "Please set the environment variable export GH_TOKEN="
-    echo "If included in ~/.config/github_credentials the script will source that file"
-    echo "Exiting"
+    echo "If included in ~/.config/github_credentials the script will source that file."
+    echo "Exiting."
     exit 1
 fi
 
@@ -79,7 +79,7 @@ if [ -n "$1" ]; then
     repo_stub=$1
     if [[ ! "$repo_stub" =~ / ]]; then
         echo "The repository value you provide to this script should match the format 'org/repo'."
-        echo "Exiting".
+        echo "Exiting."
         exit 1
     fi
     repo_url=https://github.com/$1
@@ -92,7 +92,9 @@ if [ -n "$1" ]; then
         job_name="${repo_name}"
     fi
 else
-    echo "Repo not set. Exiting."
+    echo "Repo not set."
+    echo "The repository variable should match the format 'org/repo'."
+    echo "Exiting."
     exit 1
 fi
 
