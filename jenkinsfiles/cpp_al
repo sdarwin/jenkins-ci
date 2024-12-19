@@ -126,7 +126,7 @@ pipeline {
                 # Otherwise, proceed using standard build steps:
 
                 export HOME=$(pwd)
-                bundle install
+                sudo bundle install
                 bundle exec jekyll build
 
                 '''
