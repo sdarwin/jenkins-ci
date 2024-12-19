@@ -9,7 +9,8 @@ pipeline {
     agent {
         docker {
           // image 'circleci/ruby:2.4-node-browsers-legacy'
-          image 'cppalliance/boost_superproject_build:24.04-v3'
+          // image 'cppalliance/boost_superproject_build:24.04-v3'
+          image 'cppalliance/ruby2.4:1'
           // label 'jenkinspool1'
           }
     }
