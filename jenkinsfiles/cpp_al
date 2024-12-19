@@ -197,6 +197,22 @@ pipeline {
             }
         }
 
+        stage('Post to Slack') {
+            environment {
+                CPPAL_SLACK_WEBHOOK = credentials('cppal_slack_webhook')
+            }
+
+            steps {
+                sh '''#!/bin/bash
+                set -xe
+                #!/bin/bash
+                echo "$CPPAL_SLACK_WEBHOOK"
+                PREVIEWMESSAGE="A preview of the cppalliance website is available at https://${env.CHANGE_ID}.${env.DNSREPONAME}.prtest.cppalliance.org"
+                curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$PREVIEWMESSAGE\"}" $CPPAL_SLACK_WEBHOOK
+                '''
+             }
+        } 
+
         stage('Post Diagnostics') {
             steps {
                 sh '''#!/bin/bash
