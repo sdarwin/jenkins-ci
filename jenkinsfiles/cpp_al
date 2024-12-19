@@ -212,7 +212,7 @@ pipeline {
                 ./${slack_script}
                 '''
              }
-        } 
+        }
 
         stage('Post Diagnostics') {
             steps {
