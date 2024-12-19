@@ -20,7 +20,8 @@ pipeline {
             steps {
                 sh """#!/bin/bash
                 set -xe
-                rm -rf * .*
+                # certain OS's can view this as an error:
+                rm -rf * .* || true
                 """
                 checkout scm
             }
