@@ -206,10 +206,24 @@ pipeline {
                 sh '''#!/bin/bash
                 set -xe
                 . jenkinsjobinfo.sh
-                slack_script="cppal_slack_post.sh"
-                curl -f -o ${slack_script} https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${slack_script}
-                chmod 755 ${slack_script}
-                ./${slack_script}
+
+
+                PREVIEWMESSAGE="A preview of the cppalliance website is available at https://${CHANGE_ID}.${DNSREPONAME}.prtest.cppalliance.org"
+                RANDOMATTEMPT1="{\"text\":\"$PREVIEWMESSAGE\"}"
+                echo "RANDOMATTEMPT1 IS $RANDOMATTEMPT1"
+                RANDOMATTEMPT2="{\\"text\\":\\"$PREVIEWMESSAGE\\"}"
+                echo "RANDOMATTEMPT2 is $RANDOMATTEMPT2"
+                RANDOMATTEMPT3="{\\\"text\\\":\\\"$PREVIEWMESSAGE\\\"}"
+                echo "RANDOMATTEMPT3 is $RANDOMATTEMPT2"
+                RANDOMATTEMPT4="{\\\\"text\\\\":\\\\"$PREVIEWMESSAGE\\\\"}"
+                echo "RANDOMATTEMPT4 is $RANDOMATTEMPT4"
+                # curl -X POST -H 'Content-type: application/json' --data  "{\"text\":\"$PREVIEWMESSAGE\"}"  ${CPPAL_SLACK_WEBHOOK}
+
+                # this works:
+                # slack_script="cppal_slack_post.sh"
+                # curl -f -o ${slack_script} https://raw.githubusercontent.com/${JENKINS_CI_REPO}/${JENKINS_CI_REPO_BRANCH}/scripts/${slack_script}
+                # chmod 755 ${slack_script}
+                # ./${slack_script}
                 '''
              }
         }
