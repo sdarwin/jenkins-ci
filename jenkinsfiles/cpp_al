@@ -204,7 +204,7 @@ pipeline {
 
             steps {
                 sh '''#!/bin/bash
-                set -xe
+                set -x
                 . jenkinsjobinfo.sh
 
 
@@ -217,7 +217,10 @@ pipeline {
                 echo "RANDOMATTEMPT3 is $RANDOMATTEMPT2"
                 RANDOMATTEMPT4="{\\\\"text\\\\":\\\\"$PREVIEWMESSAGE\\\\"}"
                 echo "RANDOMATTEMPT4 is $RANDOMATTEMPT4"
-                # curl -X POST -H 'Content-type: application/json' --data  "{\"text\":\"$PREVIEWMESSAGE\"}"  ${CPPAL_SLACK_WEBHOOK}
+                curl -X POST -H 'Content-type: application/json' --data  "$RANDOMATTEMPT2"  ${CPPAL_SLACK_WEBHOOK}
+                sleep 1
+                ALTERNATE="{\\"text\\":\\"xxxx$PREVIEWMESSAGE\\"}"
+                curl -X POST -H 'Content-type: application/json' --data  \"$ALTERNATE\"  ${CPPAL_SLACK_WEBHOOK}
 
                 # this works:
                 # slack_script="cppal_slack_post.sh"
