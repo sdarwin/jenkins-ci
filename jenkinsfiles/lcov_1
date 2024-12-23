@@ -239,7 +239,7 @@ pipeline {
          }
 
         stage('Pull requests: Upload to S3') {
-            when { 
+            when {
                 anyOf{
                     expression { env.CHANGE_ID != null }
                 }
