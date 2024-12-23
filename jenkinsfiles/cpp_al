@@ -8,8 +8,9 @@ pipeline {
 
     agent {
         docker {
-          image 'cppalliance/boost_superproject_build:24.04-v3'
-          args '-v /var/lib/jenkins/jenkinsfilecache:/jenkinsfilecache'
+          // image 'circleci/ruby:2.4-node-browsers-legacy'
+          // image 'cppalliance/boost_superproject_build:24.04-v3'
+          image 'cppalliance/ruby2.4:1'
           // label 'jenkinspool1'
           }
     }
@@ -19,9 +20,8 @@ pipeline {
             steps {
                 sh """#!/bin/bash
                 set -xe
-                ls -al || true
-                rm -rf * .*
-                ls -al || true
+                # certain OS's can view this as an error:
+                rm -rf * .* || true
                 """
                 checkout scm
             }
@@ -49,8 +49,6 @@ pipeline {
                 echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
                 echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
-                echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
-                echo "export PATH_TO_DOCS=doc/build/site" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -97,68 +95,6 @@ pipeline {
             }
          }
 
-        stage('Check if docs were modified') {
-            when {
-                anyOf{
-                    expression { env.CHANGE_ID != null }
-                }
-           }
-            steps {
-                sh '''#!/bin/bash
-                set -xe
-                . jenkinsjobinfo.sh
-
-                if [ "$ONLY_BUILD_ON_DOCS_MODIFICATION" == "true" ]; then
-                    echo "Starting check to see if docs have been updated."
-                    git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-                    git fetch origin develop
-                    mergebase=$(git merge-base HEAD remotes/origin/develop)
-                    counter=0
-                    for i in $(git diff --name-only HEAD $mergebase)
-                    do
-                      echo "file is $i"
-                      if [[ $i =~ ^doc/ ]]; then
-                        counter=$((counter+1))
-                      fi
-                    done
-
-                    if [ "$counter" -eq "0" ]; then
-                      echo "No docs found. Exiting."
-                      # exit 1
-                      echo "export AUTOCANCEL=true" >> jenkinsjobinfo.sh
-                    else
-                      echo "Found $counter docs. Proceeding."
-                    fi
-                 else
-                     echo "Not checking if docs were updated. Always build."
-                 fi
-                '''
-            }
-         }
-
-        stage('Determine if the job should exit') {
-            when {
-                anyOf{
-                    expression { env.CHANGE_ID != null }
-                }
-            }
-             environment {
-                 // See https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
-                  AUTOCANCEL = """${sh(
-                  returnStdout: true,
-                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${AUTOCANCEL}"'
-              )}"""
-             }
-              steps {
-                  script {
-                      if (env.AUTOCANCEL == "true") {
-                         currentBuild.result = 'ABORTED'
-                         error("Aborting the build.")
-                       }
-                  }
-              }
-         }
-
         // To skip this step, and actually all steps, adjust the job's Filter regex in the Jenkins UI
         // (develop|master|PR-.*) will build all branches
         // (PR-.*) will build pull requests. Etc.
@@ -191,69 +127,10 @@ pipeline {
 
                 # Otherwise, proceed using standard build steps:
 
-                curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
-                chmod 755 linuxdocs.sh
+                export HOME=$(pwd)
+                sudo bundle install
+                bundle exec jekyll build
 
-                # 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
-                # Since some implementations of antora/mrdocs seem to be using boost-root, symlink the filecache to the boost-root,
-		# so it will use the cache no-matter-what (hopefully).
-                savedworkspacedir=$(pwd)
-                cd /jenkinsfilecache
-                if [[ "${JOB_BASE_NAME}" =~ PR ]]; then
-                    CACHE_FOLDER="PR"
-                    BOOST_BRANCH="develop"
-                else
-                    CACHE_FOLDER=${JOB_BASE_NAME}
-                    BOOST_BRANCH=${BRANCH_NAME}
-                fi
-                mkdir -p ${REPONAME}/${CACHE_FOLDER}
-                cd ${REPONAME}/${CACHE_FOLDER}
-                if [ ! -d boost ]; then
-                    git clone https://github.com/boostorg/boost -b ${BOOST_BRANCH}
-                fi
-                cd boost
-                # not 'exporting' this, just for the following section.
-                BOOST_ROOT=$(pwd)
-                git checkout ${BOOST_BRANCH}
-                rm -rf libs/${REPONAME}/* || true
-                rm -rf libs/${REPONAME}/.* || true
-                rm -rf tools/${REPONAME}/* || true
-                rm -rf tools/${REPONAME}/.* || true
-                git pull
-                git submodule update --init
-                FILECACHE_PATH=$(pwd)
-
-                # Formatted such as "cppalliance/buffers cppalliance/http_proto"
-                if [ -z "${EXTRA_BOOST_LIBRARIES}" ]; then
-                    EXTRA_BOOST_LIBRARIES="cppalliance/buffers cppalliance/http_proto"
-                fi
-                for EXTRA_LIB in ${EXTRA_BOOST_LIBRARIES}; do
-                    EXTRA_LIB_REPO=`basename $EXTRA_LIB`
-                    if [ ! -d "$BOOST_ROOT/libs/${EXTRA_LIB_REPO}" ]; then
-                        pushd $BOOST_ROOT/libs
-                        git clone https://github.com/${EXTRA_LIB} -b $BOOST_BRANCH --depth 1
-                        popd
-                    else
-                        # refresh extra lib:
-                        pushd $BOOST_ROOT/libs/${EXTRA_LIB_REPO}
-                        git checkout $BOOST_BRANCH || true
-                        git pull || true
-                        popd
-                    fi
-                done
-
-                cd ..
-                cd $savedworkspacedir
-                ln -s ${FILECACHE_PATH} boost-root || true
-                export BOOST_SRC_DIR=$(pwd)/boost-root
-
-                # </done> 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
-
-                ./linuxdocs.sh --debug --boostrootsubdir
-
-		# Another issue, if boost-root is now a symlink, it disappears when the docker container is gone  
-                # Copy the docs "locally"
-                cp -rp boost-root/libs/${REPONAME}/doc/* doc/
                 '''
                 }
             }
@@ -280,38 +157,6 @@ pipeline {
             }
          }
 
-        stage('Main branches: Upload to S3') {
-            when {
-                anyOf{
-                    branch 'develop'
-                    branch 'master'
-                }
-            }
-
-            environment {
-                // See https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
-                 REPONAME = """${sh(
-                 returnStdout: true,
-                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${REPONAME}"'
-             )}"""
-                 DNSREPONAME = """${sh(
-                 returnStdout: true,
-                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DNSREPONAME}"'
-             )}"""
-                 PATH_TO_DOCS = """${sh(
-                 returnStdout: true,
-                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
-             )}"""
-            }
-
-            steps {
-                withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "${PATH_TO_DOCS}", includePathPattern:"**")
-                }
-            }
-        }
-
-
         stage('Pull requests: Upload to S3') {
             when {
                 anyOf{
@@ -333,29 +178,39 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PRTEST}"'
              )}"""
-                 PATH_TO_DOCS = """${sh(
-                 returnStdout: true,
-                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
-             )}"""
-                 DIFF2HTML = """${sh(
-                 returnStdout: true,
-                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DIFF2HTML}"'
-             )}"""
 
             }
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "${PATH_TO_DOCS}", includePathPattern:"**")
+
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/",  workingDir: "_site" , includePathPattern:"**")
+
                 }
                 script {
 
-                    commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html)"
+                    commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org)"
 
                     pullRequest.comment(commenttext)
 
                 }
             }
+        }
+
+        stage('Post to Slack') {
+            environment {
+                CPPAL_SLACK_WEBHOOK = credentials('cppal_slack_webhook')
+            }
+
+            steps {
+                sh '''#!/bin/bash
+                set -x
+                . jenkinsjobinfo.sh
+                PREVIEWMESSAGE="A preview of the cppalliance website is available at https://${CHANGE_ID}.${DNSREPONAME}.prtest.cppalliance.org"
+                PREVIEWDATA="{\\"text\\":\\"$PREVIEWMESSAGE\\"}"
+                curl -X POST -H 'Content-type: application/json' --data "$PREVIEWDATA" ${CPPAL_SLACK_WEBHOOK}
+                '''
+             }
         }
 
         stage('Post Diagnostics') {
@@ -378,6 +233,7 @@ pipeline {
                 '''
             }
         }
+
     }
 
     post {
