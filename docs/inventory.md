@@ -1,7 +1,28 @@
-
 ## Job Inventory
-
-
-| Repo  | Jenkinsfile |
-| ------------- | ------------- |
-| https://github.com/cppalliance/crypt  | standard_libraries_1  |
+| Job | Repo | Jenkinsfile |
+| --------- | ------------- | ------------- |
+| beast | https://github.com/boostorg/beast     | standard_libraries_1 |
+| boostbook | https://github.com/boostorg/boostbook | standard_libraries_1 |
+| boostlook | https://github.com/boostorg/boostlook | standard_libraries_1 |
+| buffers | https://github.com/cppalliance/buffers   | antora_libraries_1 |
+| buffers_lcov | https://github.com/cppalliance/buffers | lcov_1 |
+| charconv | https://github.com/boostorg/charconv | standard_libraries_1 |
+| cpp.al  | https://github.com/boostorg/cppalliance.github.io | cpp_al |
+| crypt | https://github.com/cppalliance/crypt | standard_libraries_1 |
+| docca | https://github.com/boostorg/docca | standard_libraries_1 |
+| http_io | https://github.com/cppalliance/http_io | antora_libraries_1 |
+| http_proto | https://github.com/cppalliance/http_proto | antora_libraries_1 |
+| http_proto_lcov | https://github.com/cppalliance/http_proto | lcov_1 |
+| json | https://github.com/boostorg/json | standard_libraries_1 |
+| json_benchmarks | https://github.com/boostorg/json | json_benchmarks_1 |
+| mrdocs | https://github.com/cppalliance/mrdocs | antora_libraries_1 |
+| nudb | https://github.com/cppalliance/nudb | standard_libraries_1 |
+| requests | https://github.com/cppalliance/requests | standard_libraries_1 |
+| static_string | https://github.com/boostorg/static_string | standard_libraries_1 |
+| unordered | https://github.com/boostorg/unordered | standard_libraries_1 |
+| url | https://github.com/boostorg/url | antora_libraries_1 |
+| url_lcov | https://github.com/boostorg/url | lcov_1 |
+| utility | https://github.com/boostorg/utility | standard_libraries_1 |
+| website-v2-docs | https://github.com/boostorg/website-v2-docs | website_v2_docs_1 |
+| ws_io | https://github.com/cppalliance/ws_io | antora_libraries_1 |
+| ws_proto | https://github.com/cppalliance/ws_proto | antora_libraries_1 |
