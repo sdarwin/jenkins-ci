@@ -18,7 +18,7 @@
   </icon>
   <orphanedItemStrategy class="com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy" plugin="cloudbees-folder@6.955.v81e2a_35c08d3">
     <pruneDeadBranches>true</pruneDeadBranches>
-    <daysToKeep>-1</daysToKeep>
+    <daysToKeep>14</daysToKeep>
     <numToKeep>-1</numToKeep>
     <abortBuilds>false</abortBuilds>
   </orphanedItemStrategy>
