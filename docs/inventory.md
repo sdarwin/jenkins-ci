@@ -19,7 +19,7 @@
 | nudb | https://github.com/cppalliance/nudb | standard_libraries_1 |
 | requests | https://github.com/cppalliance/requests | standard_libraries_1 |
 | static_string | https://github.com/boostorg/static_string | standard_libraries_1 |
-| unordered | https://github.com/boostorg/unordered | standard_libraries_1 |
+| unordered | https://github.com/boostorg/unordered | antora_libraries_1 |
 | url | https://github.com/boostorg/url | antora_libraries_1 |
 | url_lcov | https://github.com/boostorg/url | lcov_1 |
 | utility | https://github.com/boostorg/utility | standard_libraries_1 |
