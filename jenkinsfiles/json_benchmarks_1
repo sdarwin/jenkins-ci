@@ -32,11 +32,11 @@ pipeline {
 
                 checkout([
                            $class: 'GitSCM',
-                           branches: [[name: 'refs/heads/master']],
+                           branches: [[name: 'refs/heads/testing']],
                            doGenerateSubmoduleConfigurations: false,
                            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Infrastructure-Docs']],
                            submoduleCfg: [],
-                           userRemoteConfigs: [[credentialsId: 'github-cppalliance-bot', url: 'https://github.com/cppalliance/Infrastructure-Docs']]
+                           userRemoteConfigs: [[credentialsId: 'github-cppalliance-bot', url: 'https://github.com/sdarwin/Infrastructure-Docs']]
                        ])
             }
         }
