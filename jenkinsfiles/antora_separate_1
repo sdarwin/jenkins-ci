@@ -188,6 +188,26 @@ pipeline {
 
                 # Otherwise, proceed using standard build steps:
 
+                mkdir -p ~/".nvm_${REPONAME}_antora"
+                export NODE_VERSION=18.18.1
+                # The container has a pre-installed nodejs. Overwrite those again.
+                export NVM_BIN="$HOME/.nvm_${REPONAME}_antora/versions/node/v${NODE_VERSION}/bin"
+                export NVM_DIR=$HOME/.nvm_${REPONAME}_antora
+                export NVM_INC=$HOME/.nvm_${REPONAME}_antora/versions/node/v${NODE_VERSION}/include/node
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+                export NVM_DIR=$HOME/.nvm_${REPONAME}_antora
+                # shellcheck source=/dev/null
+                . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+                # shellcheck source=/dev/null
+                . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+                # shellcheck source=/dev/null
+                . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+                export PATH="$HOME/.nvm_${REPONAME}_antora/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+                node --version
+                npm --version
+                npm install gulp-cli@2.3.0
+                npm install @mermaid-js/mermaid-cli@10.5.1
+
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
                 ./linuxdocs.sh --debug --boostrootsubdir --skip-packages
@@ -291,10 +311,8 @@ pipeline {
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
 
-                    // s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/",  workingDir: "boost-root/doc" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/doc/src/",  workingDir: "boost-root/doc/src" , includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"**")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/", workingDir: "boost-root", includePathPattern:"boost.png")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"*.html")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/html/", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
 
                 }
                 script {
