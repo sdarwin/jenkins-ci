@@ -18,6 +18,13 @@ npm --version
 npm install gulp-cli@2.3.0
 npm install @mermaid-js/mermaid-cli@10.5.1
 
+# 2025-01-25
+cd docs/ui
+npm ci
+npx gulp lint
+npx gulp
+cd ../..
+
 cd docs
 npm ci
 
