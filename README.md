@@ -11,3 +11,4 @@ The [scripts](scripts) directory will have scripts used by the jobs. prebuild, p
 
 The [docs](docs) directory will cover more information about how the server was installed and about specific target repositories and jobs. 
 
+To request docs previews on your repository, open an Issue here in cppalliance/jenkins-ci. Keep in mind, previews depend on a doc/ folder being present and that some version of docs should be buildable even if they are still in an initial state.  

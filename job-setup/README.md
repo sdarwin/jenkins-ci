@@ -5,6 +5,4 @@ Creating jenkins jobs involves setting up nginx vhosts, certificates, and deploy
 
 Run the create-jenkins-job.sh script from this directory.
 
-In-progress. Also new-job.sh on the earlier Jenkins machine.  
-
-
+Next, run the in-progress new-jobs.sh in /root/scripts.  

@@ -2,9 +2,9 @@
   
 ### User Guide
   
-This section covers what end-users should know about the preview generation on https://github.com/cppalliance/cppalliance.github.io and other github repositories.  
+This section covers what end-users should know about the preview generation.  
   
-When a modification is made to the website, usually a pull request is submitted here: https://github.com/cppalliance/cppalliance.github.io/pulls   
+When a modification is made to any repo, usually a pull request is submitted.  
   
 A bot will automatically post a comment to the new PR conversation, such as:  
   
@@ -26,5 +26,6 @@ Unordered https://github.com/boostorg/unordered
 https://develop.crypt.cpp.al  
 https://master.crypt.cpp.al  
 
-More information: behind the scenes, this is accomplished [with Jenkins.](jenkins-summary.md)    
+To request docs previews on your repository, open an Issue here in cppalliance/jenkins-ci. Keep in mind, previews depend on a doc/ folder being present and that some version of docs should be buildable even if they are still in an initial state.            
 
+More information: behind the scenes, this is accomplished [with Jenkins.](jenkins-summary.md)    
