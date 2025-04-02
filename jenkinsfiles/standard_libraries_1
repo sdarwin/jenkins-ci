@@ -48,6 +48,7 @@ pipeline {
                 echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
                 echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=false" >> jenkinsjobinfo.sh
                 echo "export PATH_TO_DOCS=libs/${REPONAME}/doc" >> jenkinsjobinfo.sh
+                echo "export SUBPATH_TO_DOCS=/html" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -246,11 +247,17 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
              )}"""
+                 SUBPATH_TO_DOCS = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${SUBPATH_TO_DOCS}"'
+             )}"""
             }
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/${PATH_TO_DOCS}${SUBPATH_TO_DOCS}", includePathPattern:"**")
+                    // s3Upload(bucket:"cppalliance-websites", path:"${env.BRANCH_NAME}.${env.DNSREPONAME}.cpp.al", workingDir: "boost-root/${env.PATH_TO_DOCS}${env.SUBPATH_TO_DOCS}", includePathPattern:"**")
+
                 }
             }
         }
