@@ -328,7 +328,7 @@ function check_in_testing_branch {
         mv "${github_test_org}_${job_name}_build.sh" "${repo_org}_${job_name}_build.sh"
     fi
     if [ -f "${github_test_org}_${job_name}_postbuild.sh" ]; then
-        mv "${github_test_org}_${job_name}_postbuild.sh" "${repo_org}_${job_name}_prebuild.sh"
+        mv "${github_test_org}_${job_name}_postbuild.sh" "${repo_org}_${job_name}_postbuild.sh"
     fi
     git add .
     if ! git diff-index --quiet HEAD; then
