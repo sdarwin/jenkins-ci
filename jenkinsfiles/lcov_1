@@ -117,8 +117,8 @@ pipeline {
                 if [ "$ONLY_BUILD_ON_DOCS_MODIFICATION" == "true" ]; then
                     echo "Starting check to see if docs have been updated."
                     git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-                    git fetch origin develop
-                    mergebase=$(git merge-base HEAD remotes/origin/develop)
+                    git fetch origin ${CHANGE_TARGET}
+                    mergebase=$(git merge-base HEAD remotes/origin/${CHANGE_TARGET})
                     counter=0
                     for i in $(git diff --name-only HEAD $mergebase)
                     do
