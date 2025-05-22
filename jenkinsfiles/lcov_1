@@ -18,16 +18,18 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                 set -xe
+
+                # The lcov tests are also using the following directory. Remove that.
+                TMPREPONAME=$(basename -s .git "$(git config --get remote.origin.url)")
+                TMPDIRNAME=${TMPREPONAME}-target-branch-iteration
+                rm -rf ../${TMPDIRNAME} || true
+
                 rm -rf * .*
 
                 # lcov is using ../boost-root. It could re-used but what if
                 # multiple jobs are sharing that directory over time.  For now, clear it.
                 rm -rf ../boost-root || true
 
-                # The lcov tests are also using the following directory. Remove that.
-                TMPREPONAME=$(basename -s .git "$(git config --get remote.origin.url)")
-                TMPDIRNAME=${TMPREPONAME}-target-branch-iteration
-                rm -rf ../${TMPDIRNAME} || true
                 '''
                 checkout scm
             }
