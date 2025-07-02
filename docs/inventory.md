@@ -2,6 +2,7 @@
 | Job | Repo | Jenkinsfile |
 | --------- | ------------- | ------------- |
 | beast | https://github.com/boostorg/beast     | standard_libraries_1 |
+| bloom | https://github.com/boostorg/bloom     | standard_libraries_1 |
 | boostbook | https://github.com/boostorg/boostbook | standard_libraries_1 |
 | boostlook | https://github.com/boostorg/boostlook | standard_libraries_1 |
 | buffers | https://github.com/cppalliance/buffers   | antora_libraries_1 |
@@ -13,6 +14,7 @@
 | http_io | https://github.com/cppalliance/http_io | antora_libraries_1 |
 | http_proto | https://github.com/cppalliance/http_proto | antora_libraries_1 |
 | http_proto_lcov | https://github.com/cppalliance/http_proto | lcov_1 |
+| int128 | https://github.com/cppalliance/int128     | standard_libraries_1 |
 | json | https://github.com/boostorg/json | standard_libraries_1 |
 | json_benchmarks | https://github.com/boostorg/json | json_benchmarks_1 |
 | mrdocs | https://github.com/cppalliance/mrdocs | antora_libraries_1 |
