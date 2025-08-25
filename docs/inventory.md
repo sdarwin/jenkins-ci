@@ -10,6 +10,7 @@
 | charconv | https://github.com/boostorg/charconv | standard_libraries_1 |
 | cpp.al  | https://github.com/boostorg/cppalliance.github.io | cpp_al |
 | crypt | https://github.com/cppalliance/crypt | standard_libraries_1 |
+| decimal | https://github.com/cppalliance/decimal | antora_separate_1 |
 | docca | https://github.com/boostorg/docca | standard_libraries_1 |
 | http_io | https://github.com/cppalliance/http_io | antora_libraries_1 |
 | http_proto | https://github.com/cppalliance/http_proto | antora_libraries_1 |
