@@ -98,6 +98,15 @@ else
     exit 1
 fi
 
+# Pre-flight checks
+
+if gh auth status ; then
+    echo "Already logged into the gh cli. Continuing."
+else
+    echo "Not logged into the gh cli. Please run 'gh auth login'"
+    exit 1
+fi
+
 function initial_main_setup {
 
     echo "Setting up a test version of the job"
@@ -122,6 +131,8 @@ function initial_main_setup {
     if git remote -v | grep upstream ; then
         echo "upstream remote found. The fork has likely already been done. Continuing."
     else
+        # 2025, at the very beginning, this was needed?
+        gh repo set-default "${repo_org}/${repo_name}"
         echo "Running gh repo fork --remote"
         gh repo fork --remote
         gh repo set-default "${github_test_org}/${repo_name}"
