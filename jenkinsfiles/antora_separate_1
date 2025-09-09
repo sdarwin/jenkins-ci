@@ -65,6 +65,8 @@ pipeline {
                 pwd
                 env
                 whoami
+                ls -al /var/lib/jenkins/
+                ls -al /var/lib/jenkins/workspace/
                 touch $(date "+%A-%B-%d-%T-%y")
                 mount | grep ^/dev/ | grep -v /etc | awk '{print \$3}'
                 git branch
