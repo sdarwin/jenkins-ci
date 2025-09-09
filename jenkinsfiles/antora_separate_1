@@ -9,6 +9,7 @@ pipeline {
     agent {
         docker {
           image 'cppalliance/boost_superproject_build:24.04-v3'
+          args '-v /var/lib/jenkins/jenkinsfilecache:/jenkinsfilecache'
           // label 'jenkinspool1'
           }
     }
@@ -212,6 +213,65 @@ pipeline {
 
                 curl -s -S --retry 10 -L -o linuxdocs.sh https://github.com/boostorg/release-tools/raw/develop/build_docs/linuxdocs.sh
                 chmod 755 linuxdocs.sh
+
+                # 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
+                # Since some implementations of antora/mrdocs seem to be using boost-root, symlink the filecache to the boost-root,
+                # so it will use the cache no-matter-what (hopefully).
+                savedworkspacedir=$(pwd)
+                cd /jenkinsfilecache
+                if [[ "${JOB_BASE_NAME}" =~ PR ]]; then
+                    CACHE_FOLDER="PR"
+                    BOOST_BRANCH="develop"
+                elif [[ "${JOB_BASE_NAME}" =~ "docs" ]]; then
+                    CACHE_FOLDER=${JOB_BASE_NAME}
+                    BOOST_BRANCH="develop"
+                else
+                    CACHE_FOLDER=${JOB_BASE_NAME}
+                    BOOST_BRANCH=${BRANCH_NAME}
+                fi
+                mkdir -p ${REPONAME}/${CACHE_FOLDER}
+                cd ${REPONAME}/${CACHE_FOLDER}
+                if [ ! -d boost ]; then
+                    git clone https://github.com/boostorg/boost -b ${BOOST_BRANCH}
+                fi
+                cd boost
+                # not 'exporting' this, just for the following section.
+                BOOST_ROOT=$(pwd)
+                git checkout ${BOOST_BRANCH}
+                rm -rf libs/${REPONAME}/* || true
+                rm -rf libs/${REPONAME}/.* || true
+                rm -rf tools/${REPONAME}/* || true
+                rm -rf tools/${REPONAME}/.* || true
+                git pull
+                git submodule update --init
+                FILECACHE_PATH=$(pwd)
+                # Formatted such as "cppalliance/buffers cppalliance/http_proto"
+                if [ -z "${EXTRA_BOOST_LIBRARIES}" ]; then
+                    EXTRA_BOOST_LIBRARIES="cppalliance/buffers cppalliance/http_proto"
+                fi
+                for EXTRA_LIB in ${EXTRA_BOOST_LIBRARIES}; do
+                    EXTRA_LIB_REPO=`basename $EXTRA_LIB`
+                    if [ ! -d "$BOOST_ROOT/libs/${EXTRA_LIB_REPO}" ]; then
+                        pushd $BOOST_ROOT/libs
+                        git clone https://github.com/${EXTRA_LIB} -b $BOOST_BRANCH --depth 1
+                        popd
+                    else
+                        # refresh extra lib:
+                        pushd $BOOST_ROOT/libs/${EXTRA_LIB_REPO}
+                        git checkout $BOOST_BRANCH || true
+                        git pull || true
+                        popd
+                    fi
+                done
+
+                cd ..
+                cd $savedworkspacedir
+                ln -s ${FILECACHE_PATH} boost-root || true
+                echo "export FILECACHE_PATH=${FILECACHE_PATH}" >> jenkinsjobinfo.sh
+                export BOOST_SRC_DIR=$(pwd)/boost-root
+
+                # </done> 2024-11 Antora requires a full copy of boostorg/boost which is 2GB. Not ideal. Let us provide that directory here.
+
                 ./linuxdocs.sh --debug --boostrootsubdir --skip-packages
 
                 # Fix index.html
@@ -270,11 +330,16 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PATH_TO_DOCS}"'
              )}"""
+                 FILECACHE_PATH = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${FILECACHE_PATH}"'
+             )}"""
             }
 
             steps {
+                // "usually" what appears here as ${FILECACHE_PATH} would be "boost-root"
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
-                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
+                    s3Upload(bucket:"cppalliance-websites", path:"${BRANCH_NAME}.${DNSREPONAME}.cpp.al", workingDir: "/var/lib/jenkins/${FILECACHE_PATH}/${PATH_TO_DOCS}/html", includePathPattern:"**")
                 }
             }
         }
@@ -309,14 +374,19 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${DIFF2HTML}"'
              )}"""
+                 FILECACHE_PATH = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${FILECACHE_PATH}"'
+             )}"""
 
             }
 
             steps {
                 withAWS(region:'us-east-1', credentials: 'cppalliance-bot-aws-user') {
 
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "boost-root/${PATH_TO_DOCS}", includePathPattern:"*.html")
-                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/html/", workingDir: "boost-root/${PATH_TO_DOCS}/html", includePathPattern:"**")
+                    // "usually" what appears here as ${FILECACHE_PATH} would be "boost-root"
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/", workingDir: "/var/lib/jenkins/${FILECACHE_PATH}/${PATH_TO_DOCS}", includePathPattern:"*.html")
+                    s3Upload(bucket:"cppalliance-previews", path:"${DNSREPONAME}/${CHANGE_ID}/${PATH_TO_DOCS}/html/", workingDir: "/var/lib/jenkins/${FILECACHE_PATH}/${PATH_TO_DOCS}/html", includePathPattern:"**")
 
                 }
                 script {
