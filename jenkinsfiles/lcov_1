@@ -327,7 +327,7 @@ pipeline {
                 echo 'This will run only if failure'
                 script {
                     if (env.PRSTATE == "closed") {
-                        echo 'Don't send an email about a closed PR.'
+                        echo 'No email about a closed PR.'
                     }
                     else {
                         mail bcc: '', body: "<b>prstate: ${env.PRSTATE}</b><br>Project: ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br> URL of the build: ${env.BUILD_URL}", cc: '', charset: 'UTF-8', from: '', mimeType: 'text/html', replyTo: '', subject: "ERROR CI: Project name -> ${env.JOB_NAME}", to: "jenkins@cppalliance.org";
