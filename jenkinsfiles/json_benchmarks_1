@@ -71,7 +71,7 @@ pipeline {
                 sh '''#!/bin/bash
                 set -x
                 # not set -e. errors may occur in diagnostics
-                sudo apt-get install jq
+                sudo apt-get install -y jq
                 cat jenkinsjobinfo.sh
                 . jenkinsjobinfo.sh
                 ls -al
