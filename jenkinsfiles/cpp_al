@@ -35,7 +35,7 @@ pipeline {
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
-                if [[ "${GIT_URL}" =~ sdarwin ]]; then
+                if [[ "${GIT_URL}" =~ sdarwin ]] || [[ "${GIT_URL}" =~ openshift ]]; then
                     # testing environment
                     echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
                     echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
@@ -193,7 +193,10 @@ pipeline {
 
         stage('Post to Slack') {
             environment {
+                // not working for some reason:
+                // CPPAL_SLACK_WEBHOOK = "${env.GIT_URL =~ "openshift2" || env.GIT_URL =~ "sdarwin" ? credentials('cppal_slack_webhook_testing') : credentials('cppal_slack_webhook')}"
                 CPPAL_SLACK_WEBHOOK = credentials('cppal_slack_webhook')
+                CPPAL_SLACK_WEBHOOK_TESTING = credentials('cppal_slack_webhook_testing')
             }
 
             steps {
@@ -202,7 +205,14 @@ pipeline {
                 . jenkinsjobinfo.sh
                 PREVIEWMESSAGE="A preview of the cppalliance website is available at https://${CHANGE_ID}.${DNSREPONAME}.prtest.cppalliance.org"
                 PREVIEWDATA="{\\"text\\":\\"$PREVIEWMESSAGE\\"}"
-                curl -X POST -H 'Content-type: application/json' --data "$PREVIEWDATA" ${CPPAL_SLACK_WEBHOOK}
+                if [[ "${GIT_URL}" =~ sdarwin ]] || [[ "${GIT_URL}" =~ openshift ]]; then
+                    SLACK_WEBHOOK=${CPPAL_SLACK_WEBHOOK_TESTING}
+                    echo "SLACK_WEBHOOK IS TESTING"
+                else
+                    SLACK_WEBHOOK=${CPPAL_SLACK_WEBHOOK}
+                    echo "SLACK_WEBHOOK IS PRODUCTION"
+                fi
+                curl -X POST -H 'Content-type: application/json' --data "$PREVIEWDATA" ${SLACK_WEBHOOK}
                 '''
             }
         }
