@@ -10,6 +10,7 @@ pipeline {
             // image 'circleci/ruby:2.4-node-browsers-legacy'
             // image 'cppalliance/boost_superproject_build:24.04-v3'
             image 'cppalliance/ruby2.4:1'
+            args '-v /var/lib/jenkins/jenkinsfilecache:/jenkinsfilecache'
         // label 'jenkinspool1'
         }
     }
@@ -48,6 +49,7 @@ pipeline {
                 echo "export REPONAME=${REPONAME}" >> jenkinsjobinfo.sh
                 echo "export DNSREPONAME=${DNSREPONAME}" >> jenkinsjobinfo.sh
                 echo "export ORGANIZATION=${ORGANIZATION}" >> jenkinsjobinfo.sh
+                echo "export ALWAYS_NOTIFY=false" >> jenkinsjobinfo.sh
                 '''
             }
         }
@@ -177,6 +179,10 @@ pipeline {
                  returnStdout: true,
                  script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${PRTEST}"'
              )}"""
+                ALWAYS_NOTIFY = """${sh(
+                 returnStdout: true,
+                 script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; echo -n "${ALWAYS_NOTIFY}"'
+             )}"""
             }
 
             steps {
@@ -184,10 +190,64 @@ pipeline {
                     s3Upload(bucket:'cppalliance-previews', path:"${DNSREPONAME}/${CHANGE_ID}/",  workingDir: '_site' , includePathPattern:'**')
                 }
                 script {
+                    def TIMESTAMP = """${sh(
+                        returnStdout: true,
+                        script: '#!/bin/bash \n' + 'date -u +"%Y-%m-%d %H:%M:%S UTC"'
+                    )}"""
+
+                    def NOTIFIED_BEFORE = """${sh(
+                        returnStdout: true,
+                        script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; if grep -q ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list ; then echo -n true; else echo -n false; fi'
+                     )}"""
+
+                    def readContent1 = readFile 'jenkinsjobinfo.sh'
+                    writeFile file: 'jenkinsjobinfo.sh', text: readContent1 + "export NOTIFIED_BEFORE=${NOTIFIED_BEFORE}\n"
+
+                    def COMMENT_ID = 'unknown'
+
+                    if (NOTIFIED_BEFORE == 'true') {
+                        echo 'Detecting COMMENT_ID from pr_notification_list'
+                        COMMENT_ID = """${sh(
+                         returnStdout: true,
+                         script: '#!/bin/bash \n source jenkinsjobinfo.sh; grep ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list | tail -n 1 | sed -nE "s/^.*%.*%.*%.*%(.*)/\\1/p"'
+                     )}"""
+                    }
                     def commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org)"
 
-                    pullRequest.comment(commenttext)
+                    if (ALWAYS_NOTIFY == 'false') {
+                        commenttext = commenttext + "\n\nIf more commits are pushed to the pull request, the docs will rebuild at the same URL.\n\n${TIMESTAMP}"
+                    }
+
+                    // Send the PR comment
+                    if ((ALWAYS_NOTIFY == 'true') || (NOTIFIED_BEFORE == 'false')) {
+                        echo 'Posting a comment for the first time'
+                        def mycomment = pullRequest.comment(commenttext)
+                        echo "mycomment is ${mycomment}"
+                        COMMENT_ID = mycomment.id
+                        echo 'New COMMENT_ID from a new comment is:'
+                        echo "${COMMENT_ID}"
+                    }
+
+                    // Update the PR comment
+                    if ((ALWAYS_NOTIFY == 'false') && (NOTIFIED_BEFORE == 'true')) {
+                        echo 'Editing a comment'
+                        long COMMENT_ID_INT = "$COMMENT_ID" as Long
+                        pullRequest.editComment(COMMENT_ID_INT, commenttext)
+                    }
+
+                    def readContent = readFile 'jenkinsjobinfo.sh'
+                    writeFile file: 'jenkinsjobinfo.sh', text: readContent + "export COMMENT_ID=${COMMENT_ID}\n"
                 }
+
+                sh '''#!/bin/bash
+                  set -x
+                  source jenkinsjobinfo.sh
+                  if grep -q ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list; then
+                      echo "Already noted"
+                  else
+                     echo "${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent%${COMMENT_ID}" >> /jenkinsfilecache/pr_notification_list
+                  fi
+                  '''
             }
         }
 
@@ -212,7 +272,9 @@ pipeline {
                     SLACK_WEBHOOK=${CPPAL_SLACK_WEBHOOK}
                     echo "SLACK_WEBHOOK IS PRODUCTION"
                 fi
-                curl -X POST -H 'Content-type: application/json' --data "$PREVIEWDATA" ${SLACK_WEBHOOK}
+                if [[ $ALWAYS_NOTIFY == 'true' ]] || [[ $NOTIFIED_BEFORE == 'false' ]]; then
+                    curl -X POST -H 'Content-type: application/json' --data "$PREVIEWDATA" ${SLACK_WEBHOOK}
+                fi
                 '''
             }
         }
