@@ -2,6 +2,7 @@
 | Job | Repo | Jenkinsfile |
 | --------- | ------------- | ------------- |
 | beast | https://github.com/boostorg/beast     | standard_libraries_1 |
+| beast2 | https://github.com/cppalliance/beast2   | antora_libraries_1 |
 | bloom | https://github.com/boostorg/bloom     | standard_libraries_1 |
 | boostbook | https://github.com/boostorg/boostbook | standard_libraries_1 |
 | boostlook | https://github.com/boostorg/boostlook | standard_libraries_1 |
