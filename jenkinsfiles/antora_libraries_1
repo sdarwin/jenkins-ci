@@ -26,6 +26,28 @@ pipeline {
             }
         }
 
+        stage('Read Params') {
+            steps {
+                script {
+                    try {
+                        env.NOTIFIED_BEFORE = params.SAVED_NOTIFIED_BEFORE
+                    }
+                    catch (Exception e) {
+                        env.NOTIFIED_BEFORE = 'false'
+                    }
+                    if (env.NOTIFIED_BEFORE != 'true') {
+                        env.NOTIFIED_BEFORE = 'false'
+                    }
+                    try {
+                        env.COMMENT_ID = params.SAVED_COMMENT_ID
+                    }
+                    catch (Exception e) {
+                        env.COMMENT_ID = 'none'
+                    }
+                }
+            }
+        }
+
         stage('Set Variables') {
             steps {
                 sh '''#!/bin/bash -xe
@@ -356,28 +378,13 @@ pipeline {
                         script: '#!/bin/bash \n' + 'date -u +"%Y-%m-%d %H:%M:%S UTC"'
                     )}"""
 
-                    def NOTIFIED_BEFORE = """${sh(
-                        returnStdout: true,
-                        script: '#!/bin/bash \n' + 'source jenkinsjobinfo.sh; if grep -q ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list ; then echo -n true; else echo -n false; fi'
-                     )}"""
-
-                    def COMMENT_ID = 'unknown'
-
-                    if (NOTIFIED_BEFORE == 'true') {
-                        echo 'Detecting COMMENT_ID from pr_notification_list'
-                        COMMENT_ID = """${sh(
-                         returnStdout: true,
-                         script: '#!/bin/bash \n source jenkinsjobinfo.sh; grep ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list | tail -n 1 | sed -nE "s/^.*%.*%.*%.*%(.*)/\\1/p"'
-                     )}"""
-                    }
-
                     def commenttext = "An automated preview of the documentation is available at [https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html](https://${env.CHANGE_ID}.${env.DNSREPONAME}.${env.PRTEST}.cppalliance.org/index.html)"
 
                     if (ALWAYS_NOTIFY == 'false') {
                         commenttext = commenttext + "\n\nIf more commits are pushed to the pull request, the docs will rebuild at the same URL.\n\n${TIMESTAMP}"
                     }
 
-                    echo "Debug info: ALWAYS_NOTIFY ${ALWAYS_NOTIFY} NOTIFIED_BEFORE ${NOTIFIED_BEFORE} COMMENT_ID ${COMMENT_ID}"
+                    echo "Debug info: ALWAYS_NOTIFY ${ALWAYS_NOTIFY} NOTIFIED_BEFORE ${NOTIFIED_BEFORE} COMMENT_ID ${env.COMMENT_ID}"
                     echo 'comment content:'
                     echo "${commenttext}"
 
@@ -386,31 +393,18 @@ pipeline {
                         echo 'Posting a comment for the first time'
                         def mycomment = pullRequest.comment(commenttext)
                         echo "mycomment is ${mycomment}"
-                        COMMENT_ID = mycomment.id
+                        env.COMMENT_ID = mycomment.id
                         echo 'New COMMENT_ID from a new comment is:'
-                        echo "${COMMENT_ID}"
+                        echo "${env.COMMENT_ID}"
                     }
 
                     // Update the PR comment
                     if ( (ALWAYS_NOTIFY == 'false') && (NOTIFIED_BEFORE == 'true')) {
                         echo 'Editing a comment'
-                        long COMMENT_ID_INT = "$COMMENT_ID" as Long
+                        long COMMENT_ID_INT = "$env.COMMENT_ID" as Long
                         pullRequest.editComment(COMMENT_ID_INT, commenttext)
                     }
-
-                    def readContent = readFile 'jenkinsjobinfo.sh'
-                    writeFile file: 'jenkinsjobinfo.sh', text: readContent + "export COMMENT_ID=${COMMENT_ID}\n"
                 }
-
-                sh '''#!/bin/bash
-                  set -x
-                  source jenkinsjobinfo.sh
-                  if grep -q ${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent /jenkinsfilecache/pr_notification_list; then
-                      echo "Already noted"
-                  else
-                     echo "${ORGANIZATION}%${REPONAME}%${CHANGE_ID}%sent%${COMMENT_ID}" >> /jenkinsfilecache/pr_notification_list
-                  fi
-                  '''
             }
         }
 
@@ -432,6 +426,19 @@ pipeline {
                 git branch -avv
                 true
                 '''
+            }
+        }
+
+        stage('Save Variables for next run') {
+            steps {
+                script {
+                    properties([
+            parameters([
+              string(defaultValue: 'true', description: 'Saved Notified Before', name: 'SAVED_NOTIFIED_BEFORE', trim: true),
+              string(defaultValue: "$env.COMMENT_ID", description: 'Saved Comment ID', name: 'SAVED_COMMENT_ID', trim: true)
+            ])
+          ])
+                }
             }
         }
     }
