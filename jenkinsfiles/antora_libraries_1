@@ -389,7 +389,7 @@ pipeline {
                     echo "${commenttext}"
 
                     // Send the PR comment
-                    if ( (ALWAYS_NOTIFY == 'true') || (NOTIFIED_BEFORE == 'false')) {
+                    if ((ALWAYS_NOTIFY == 'true') || (NOTIFIED_BEFORE == 'false')) {
                         echo 'Posting a comment for the first time'
                         def mycomment = pullRequest.comment(commenttext)
                         echo "mycomment is ${mycomment}"
@@ -399,7 +399,7 @@ pipeline {
                     }
 
                     // Update the PR comment
-                    if ( (ALWAYS_NOTIFY == 'false') && (NOTIFIED_BEFORE == 'true')) {
+                    if ((ALWAYS_NOTIFY == 'false') && (NOTIFIED_BEFORE == 'true')) {
                         echo 'Editing a comment'
                         long COMMENT_ID_INT = "$env.COMMENT_ID" as Long
                         pullRequest.editComment(COMMENT_ID_INT, commenttext)
