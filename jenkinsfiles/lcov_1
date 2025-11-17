@@ -65,7 +65,7 @@ pipeline {
                 # REPONAME=$(basename `git rev-parse --show-toplevel`)
                 DNSREPONAME=$(echo $REPONAME | tr '_' '-')
                 ORGANIZATION=$(basename $(dirname "${GIT_URL}"))
-                if [[ "${GIT_URL}" =~ sdarwin ]]; then
+                if [[ "${GIT_URL}" =~ sdarwin ]] || [[ "${GIT_URL}" =~ samd2 ]] ; then
                     # testing environment
                     echo "export JENKINS_CI_REPO=sdarwin/jenkins-ci" >> jenkinsjobinfo.sh
                     echo "export JENKINS_CI_REPO_BRANCH=testing" >> jenkinsjobinfo.sh
@@ -231,6 +231,11 @@ pipeline {
                 FILENAME="lcov-jenkins-gcc-13.sh"
                 URL="${GITHUB_REPO_URL}/$DIR/$FILENAME"
                 FILE=~/.local/bin/$FILENAME
+                # Not redownloading the file is problematic during testing.
+                # In that case, always delete it.
+                if [ -f "$FILE" ]; then
+                    rm "$FILE"
+                fi
                 if [ ! -f "$FILE" ]; then
                     curl -s -S --retry 10 -L -o $FILE $URL && chmod 755 $FILE
                 fi
