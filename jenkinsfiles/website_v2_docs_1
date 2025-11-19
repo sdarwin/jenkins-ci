@@ -337,7 +337,6 @@ pipeline {
                 '''
             }
         }
-    }
 
         stage('Save Variables for next run') {
             steps {
@@ -351,6 +350,7 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
             always {
