@@ -332,6 +332,22 @@ function prepare_testing_branch {
     git merge upstream/master
     git branch -d testing
     git checkout -b testing
+
+    # A prebuild script is almost always required.
+
+prebuild_script=$(cat <<EOF
+#!/bin/bash
+
+set -xe
+echo "export PRTEST=prtest3" >> jenkinsjobinfo.sh
+echo "export ONLY_BUILD_ON_DOCS_MODIFICATION=true" >> jenkinsjobinfo.sh
+echo "export EXTRA_BOOST_LIBRARIES='cppalliance/buffers cppalliance/capy cppalliance/corosio cppalliance/http'" >> jenkinsjobinfo.sh
+
+EOF
+)
+
+    echo "${prebuild_script}" > "scripts/${github_test_org}_${repo_name}_prebuild.sh"
+    chmod 755 "scripts/${github_test_org}_${repo_name}_prebuild.sh"
     echo "Testing branch configured successfully"
     cd "${previousdir}"
     set +x
