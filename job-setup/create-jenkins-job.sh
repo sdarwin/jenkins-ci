@@ -211,7 +211,7 @@ function initial_main_setup {
         cp -p config.xml "/var/lib/jenkins/jobs/${job_name}/config.xml"
         # shellcheck source=/dev/null
         . ~/.config/jenkins_credentials
-        java -jar /usr/bin/jenkins-cli.jar -s http://localhost:8080 -auth "$JENKINS_USER:$JENKINS_PASSWORD" reload-configuration
+        java -jar /usr/bin/jenkins-cli.jar -http -s http://localhost:8080 -auth "$JENKINS_USER:$JENKINS_PASSWORD" reload-configuration
     else
         echo "The job, and config.xml, already exist, at ${destfile}. Not copying in a new file."
     fi
@@ -244,7 +244,7 @@ function deploy_job {
     sed -i "s|<name>\*/testing</name>|<name>\*/master</name>|" "${configfile}"
     # shellcheck source=/dev/null
     . ~/.config/jenkins_credentials
-    java -jar /usr/bin/jenkins-cli.jar -s http://localhost:8080 -auth "$JENKINS_USER:$JENKINS_PASSWORD" reload-configuration
+    java -jar /usr/bin/jenkins-cli.jar -http -s http://localhost:8080 -auth "$JENKINS_USER:$JENKINS_PASSWORD" reload-configuration
 }
 
 function prepare_testing_branch {
@@ -292,7 +292,7 @@ function prepare_testing_branch {
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
         testing_branch_success="no"
-        set +x
+        # set -x
         cd "${previousdir}"
         return "0"
     fi
@@ -302,7 +302,7 @@ function prepare_testing_branch {
     else
         echo "git diff has a diff. Please resolve this manually. Not preparing the testing branch. Exiting from this function."
         testing_branch_success="no"
-        set +x
+        # set -x
         cd "${previousdir}"
         return "0"
     fi
@@ -352,7 +352,7 @@ EOF
 
     echo "Testing branch configured successfully"
     cd "${previousdir}"
-    set +x
+    # set -x
 }
 
 function check_in_testing_branch {
